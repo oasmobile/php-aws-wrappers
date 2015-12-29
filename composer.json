@@ -1,0 +1,25 @@
+{
+    "name"       : "oasis/aws-wrappers",
+    "description": "Wrappers for AWS SDK",
+    "type"       : "library",
+    "require"    : {
+        "aws/aws-sdk-php": "^3.12",
+        "oasis/logging"  : "^1.0",
+        "oasis/event"    : "^1.0"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^5.1"
+    },
+    "license"    : "MIT",
+    "authors"    : [
+        {
+            "name" : "Minhao Zhang",
+            "email": "minhao.zhang@qq.com"
+        }
+    ],
+    "autoload"   : {
+        "psr-4": {
+            "Oasis\\Mlib\\": "src/"
+        }
+    }
+}
