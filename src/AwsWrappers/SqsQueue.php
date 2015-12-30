@@ -11,6 +11,7 @@ namespace Oasis\Mlib\AwsWrappers;
 use Aws\Sqs\SqsClient;
 use Oasis\Mlib\Event\EventDispatcherInterface;
 use Oasis\Mlib\Event\EventDispatcherTrait;
+use Oasis\Mlib\Utils\ArrayDataProvider;
 
 class SqsQueue implements EventDispatcherInterface
 {
@@ -28,11 +29,13 @@ class SqsQueue implements EventDispatcherInterface
 
     function __construct($aws_config, $name)
     {
-        if (!isset($aws_config['version'])) {
-            $aws_config['version'] = '2012-11-05';
-        }
-        $this->client = new SqsClient($aws_config);
-        $this->config = $aws_config;
+        $dp           = new ArrayDataProvider($aws_config);
+        $this->config = [
+            'version' => "2012-11-05",
+            "profile" => $dp->getMandatory('profile'),
+            "region"  => $dp->getMandatory('region'),
+        ];
+        $this->client = new SqsClient($this->config);
         $this->name   = $name;
     }
 

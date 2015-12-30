@@ -11,6 +11,7 @@ namespace Oasis\Mlib\AwsWrappers;
 use Aws\CloudWatch\CloudWatchClient;
 use Aws\DynamoDb\DynamoDbClient;
 use Aws\DynamoDb\Exception\DynamoDbException;
+use Oasis\Mlib\Utils\ArrayDataProvider;
 
 class DynamoDbTable
 {
@@ -28,10 +29,12 @@ class DynamoDbTable
 
     function __construct(array $aws_config, $table_name, $attribute_types = [], $cas_field = '')
     {
-        if (!isset($aws_config['version'])) {
-            $aws_config['version'] = "2012-08-10";
-        }
-        $this->config          = $aws_config;
+        $dp                    = new ArrayDataProvider($aws_config);
+        $this->config          = [
+            'version' => "2012-08-10",
+            "profile" => $dp->getMandatory('profile'),
+            "region"  => $dp->getMandatory('region'),
+        ];
         $this->db_client       = new DynamoDbClient($this->config);
         $this->table_name      = $table_name;
         $this->attribute_types = $attribute_types;
