@@ -9,15 +9,15 @@ namespace Oasis\Mlib\AwsWrappers;
 
 class RedshiftHelper
 {
-    static public function formatObjectToRedshiftLine($obj, &$fields)
+    static public function formatToRedshiftLine($obj, &$fields)
     {
-        $patterns     = [
+        static $patterns = [
             "/\\\\/",
             "/\n/",
             "/\r/",
             "/\\|/",
         ];
-        $replacements = [
+        static $replacements = [
             "\\\\\\\\",
             "\\\n",
             "\\\r",
@@ -33,8 +33,14 @@ class RedshiftHelper
             else {
                 $not_first = true;
             }
-            
-            $v = $obj->$k;
+
+            if (is_array($obj)) {
+                $v = $obj[$k];
+            }
+            else {
+                $v = $obj->$k;
+            }
+
             $v = preg_replace($patterns, $replacements, $v);
             $line .= $v;
         }
