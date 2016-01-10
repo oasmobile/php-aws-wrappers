@@ -175,9 +175,12 @@ class SqsQueue implements EventDispatcherInterface
         )) {
             $buffer = array_merge($buffer, $msgs);
             $this->dispatch(self::READ_PROGRESS, count($buffer) / $max_count);
-            if (count($msgs) < 10) {
-                break;
-            }
+
+            // commented out because sometimes a full queue will somehow return less than 10 messages in a batch
+            //if (count($msgs) < 10) {
+            //    break;
+            //}
+
             $one_batch = min(10, $max_count - count($buffer));
             if ($one_batch <= 0) {
                 break;
