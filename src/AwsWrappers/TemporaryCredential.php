@@ -8,10 +8,19 @@
 
 namespace Oasis\Mlib\AwsWrappers;
 
+use Aws\Api\DateTimeResult;
+
 class TemporaryCredential
 {
+    /** @var  string */
     public $accessKeyId;
+    /** @var  string */
     public $secretAccessKey;
+    /** @var  string */
+    /** @var  string */
     public $sessionToken;
+    /** @var  DateTimeResult */
+    public $expireDateTime;
+    /** @var  integer timestamp */
     public $expireAt;
 }

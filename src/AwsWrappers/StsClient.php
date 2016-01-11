@@ -20,11 +20,11 @@ class StsClient extends \Aws\Sts\StsClient
     }
     
     /**
-     * @param $durationInSeconds
+     * @param int $durationInSeconds default to 43200 which is 12 hours
      *
      * @return TemporaryCredential
      */
-    public function getTemporaryCredential($durationInSeconds)
+    public function getTemporaryCredential($durationInSeconds = 43200)
     {
         $now      = time();
         $expireAt = $now + $durationInSeconds;
@@ -41,6 +41,7 @@ class StsClient extends \Aws\Sts\StsClient
         $credential->sessionToken    = $result['Credentials']['SessionToken'];
         $credential->accessKeyId     = $result['Credentials']['AccessKeyId'];
         $credential->secretAccessKey = $result['Credentials']['SecretAccessKey'];
+        $credential->expireDateTime  = $result['Credentials']['Expiration'];
 
         return $credential;
     }
