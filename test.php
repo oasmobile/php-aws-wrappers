@@ -7,19 +7,16 @@
  * Time: 17:16
  */
 
-use Oasis\Mlib\AwsWrappers\S3Client;
+use Oasis\Mlib\AwsWrappers\SnsPublisher;
 
 require_once __DIR__ . "/vendor/autoload.php";
 
-$s3 = new S3Client(
+$sns = new SnsPublisher(
     [
         'profile' => 'dmp-user',
         "region"  => 'us-east-1',
-    ]
+    ],
+    "arn-name"
 );
-
-$uri = $s3->getPresignedUri('s3://brotsoft-dmp/speedtest.txt');
-
-var_dump($uri);
-
+$sns->publish('subject', 'body', [SnsPublisher::CHANNEL_EMAIL]);
 
