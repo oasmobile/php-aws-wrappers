@@ -223,7 +223,7 @@ Below is a quote from AWS FAQ:
 > <br />
 > Amazon DynamoDB stores three geographically distributed replicas of each table to enable high availability and data durability. Read consistency represents the manner and timing in which the successful write or update of a data item is reflected in a subsequent read operation of that same item. Amazon DynamoDB exposes logic that enables you to specify the consistency characteristics you desire for each read request within your application.
 
-When you want to read data that need to be strongly consistent, there is an additional parameter to `get()`, `query()`, `scan()`, `queryAndRun()` and `scanAndRun()` methods, that specifies wheter this read is _consistent_ or not. The default value for this parameter is false.
+When you want to read data that need to be strongly consistent, there is an additional parameter to `get()`, `query()`, `scan()`, `queryAndRun()` and `scanAndRun()` methods, that specifies whether this read is _consistent_ or not. The default value for this parameter is `false`.
 
 ```php
 <?php
