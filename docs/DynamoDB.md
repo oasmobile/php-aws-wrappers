@@ -8,7 +8,7 @@ The DynamoDB wrapper in oasis/aws-wrappers is the `DynamoDbTable` class.
 
 ## Constructing
 
-The constructor signature is like below:
+Create a `DynamoDbTable` object like below:
 
 ```php
 <?php

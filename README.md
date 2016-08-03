@@ -42,6 +42,5 @@ When using AWS SDK, one thing that is overlooked most of the time is the policy 
 - [Redshift import/export](docs/Redshift.md)
 - [S3](docs/S3Client.md)
 - [SQS](docs/SQS.md)
-- [STS](docs/STS.md)
 
 [aws/aws-php-sdk]: https://github.com/aws/aws-sdk-php/ "Official Repository"
