@@ -16,6 +16,9 @@ class StsClient extends \Aws\Sts\StsClient
         if (!isset($args['version'])) {
             $args['version'] = "2011-06-15";
         }
+        if (!isset($args['endpoint']) && isset($args['region'])) {
+            $args['endpoint'] = sprintf("https://sts.%s.amazonaws.com", $args['region']);
+        }
         parent::__construct($args);
     }
     
@@ -35,15 +38,15 @@ class StsClient extends \Aws\Sts\StsClient
             ]
         );
         $result   = $this->execute($cmd);
-
+        
         $credential                  = new TemporaryCredential();
         $credential->expireAt        = $expireAt;
         $credential->sessionToken    = $result['Credentials']['SessionToken'];
         $credential->accessKeyId     = $result['Credentials']['AccessKeyId'];
         $credential->secretAccessKey = $result['Credentials']['SecretAccessKey'];
         $credential->expireDateTime  = $result['Credentials']['Expiration'];
-
+        
         return $credential;
     }
-
+    
 }

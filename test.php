@@ -7,16 +7,23 @@
  * Time: 17:16
  */
 
-use Oasis\Mlib\AwsWrappers\SnsPublisher;
+use Oasis\Mlib\AwsWrappers\StsClient;
 
 require_once __DIR__ . "/vendor/autoload.php";
 
-$sns = new SnsPublisher(
+//$sns = new SnsPublisher(
+//    [
+//        'profile' => 'dmp-user',
+//        "region"  => 'us-east-1',
+//    ],
+//    "arn-name"
+//);
+//$sns->publish('subject', 'body', [SnsPublisher::CHANNEL_EMAIL]);
+//
+$sts = new StsClient(
     [
-        'profile' => 'dmp-user',
-        "region"  => 'us-east-1',
-    ],
-    "arn-name"
+        'profile' => 'oasis-minhao',
+        'region'  => 'ap-northeast-1',
+    ]
 );
-$sns->publish('subject', 'body', [SnsPublisher::CHANNEL_EMAIL]);
-
+var_dump($sts->getTemporaryCredential());
