@@ -7,23 +7,17 @@
  * Time: 17:16
  */
 
-use Oasis\Mlib\AwsWrappers\StsClient;
+use Oasis\Mlib\AwsWrappers\DynamoDbItem;
+use Oasis\Mlib\AwsWrappers\DynamoDbManager;
 
 require_once __DIR__ . "/vendor/autoload.php";
+$aws = [
+    'profile' => 'oasis-minhao',
+    'region'  => 'ap-northeast-1',
+];
 
-//$sns = new SnsPublisher(
-//    [
-//        'profile' => 'dmp-user',
-//        "region"  => 'us-east-1',
-//    ],
-//    "arn-name"
-//);
-//$sns->publish('subject', 'body', [SnsPublisher::CHANNEL_EMAIL]);
-//
-$sts = new StsClient(
-    [
-        'profile' => 'oasis-minhao',
-        'region'  => 'ap-northeast-1',
-    ]
-);
-var_dump($sts->getTemporaryCredential());
+$man = new DynamoDbManager($aws);
+//$man->createTable('test2', 'id', DynamoDbItem::ATTRIBUTE_TYPE_STRING, "age", DynamoDbItem::ATTRIBUTE_TYPE_NUMBER);
+$man->deleteTable('test2');
+$tables = $man->listTables();
+var_dump($tables);

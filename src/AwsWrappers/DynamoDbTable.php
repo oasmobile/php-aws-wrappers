@@ -17,16 +17,16 @@ class DynamoDbTable
 {
     const PRIMARY_INDEX = false;
     const NO_INDEX      = null;
-
+    
     /** @var DynamoDbClient */
     protected $db_client;
-
+    
     protected $config;
-
+    
     protected $table_name;
     protected $cas_field       = '';
     protected $attribute_types = [];
-
+    
     function __construct(array $aws_config, $table_name, $attribute_types = [], $cas_field = '')
     {
         $dp                    = new ArrayDataProvider($aws_config);
@@ -40,17 +40,17 @@ class DynamoDbTable
         $this->attribute_types = $attribute_types;
         $this->cas_field       = $cas_field;
     }
-
+    
     public function describe()
     {
         $requestArgs = [
             "TableName" => $this->table_name,
         ];
         $result      = $this->db_client->describeTable($requestArgs);
-
+        
         return $result;
     }
-
+    
     public function getConsumedCapacity($indexName = self::PRIMARY_INDEX,
                                         $period = 60,
                                         $num_of_period = 5,
@@ -63,11 +63,11 @@ class DynamoDbTable
                 "version" => "2010-08-01",
             ]
         );
-
+        
         $end = time() + $timeshift;
         $end -= $end % $period;
         $start = $end - $num_of_period * $period;
-
+        
         $requestArgs = [
             "Namespace"  => "AWS/DynamoDB",
             "Dimensions" => [
@@ -92,7 +92,7 @@ class DynamoDbTable
                 "Value" => $indexName,
             ];
         }
-
+        
         $result      = $cloudwatch->getMetricStatistics($requestArgs);
         $total_read  = 0;
         $total_count = 0;
@@ -101,7 +101,7 @@ class DynamoDbTable
             $total_read += $data['Sum'];
         }
         $readUsed = $total_count ? ($total_read / $total_count / 60) : 0;
-
+        
         $requestArgs['MetricName'] = 'ConsumedWriteCapacityUnits';
         $result                    = $cloudwatch->getMetricStatistics($requestArgs);
         $total_write               = 0;
@@ -117,7 +117,7 @@ class DynamoDbTable
             $writeUsed,
         ];
     }
-
+    
     public function getThroughput($indexName = self::PRIMARY_INDEX)
     {
         $result = $this->describe();
@@ -132,17 +132,17 @@ class DynamoDbTable
                 if ($gsi['IndexName'] != $indexName) {
                     continue;
                 }
-
+                
                 return [
                     $gsi['ProvisionedThroughput']['ReadCapacityUnits'],
                     $gsi['ProvisionedThroughput']['WriteCapacityUnits'],
                 ];
             }
         }
-
+        
         throw new \UnexpectedValueException("Cannot find index named $indexName");
     }
-
+    
     public function setThroughput($read, $write, $indexName = self::PRIMARY_INDEX)
     {
         $requestArgs  = [
@@ -165,7 +165,7 @@ class DynamoDbTable
                 ],
             ];
         }
-
+        
         try {
             $this->db_client->updateTable($requestArgs);
         } catch (DynamoDbException $e) {
@@ -180,14 +180,14 @@ class DynamoDbTable
             }
         }
     }
-
+    
     public function setAttributeType($name, $type)
     {
         $this->attribute_types[$name] = $type;
-
+        
         return $this;
     }
-
+    
     public function get(array $keys, $is_consistent_read = false)
     {
         $keyItem     = DynamoDbItem::createFromArray($keys, $this->attribute_types);
@@ -198,28 +198,28 @@ class DynamoDbTable
         if ($is_consistent_read) {
             $requestArgs["ConsistentRead"] = true;
         }
-
+        
         $result = $this->db_client->getItem($requestArgs);
         if ($result['Item']) {
             $item = DynamoDbItem::createFromTypedArray((array)$result['Item']);
-
+            
             return $item->toArray();
         }
         else {
             return null;
         }
     }
-
+    
     public function set(array $obj, $cas = false)
     {
         $requestArgs = [
             "TableName" => $this->table_name,
         ];
-
+        
         if ($this->cas_field) {
             $old_cas               = $obj[$this->cas_field];
             $obj[$this->cas_field] = time();
-
+            
             if ($old_cas && $cas) {
                 $requestArgs['ConditionExpression']       = "#CAS = :cas_val";
                 $requestArgs['ExpressionAttributeNames']  = ["#CAS" => $this->cas_field];
@@ -228,7 +228,7 @@ class DynamoDbTable
         }
         $item                = DynamoDbItem::createFromArray($obj, $this->attribute_types);
         $requestArgs['Item'] = $item->getData();
-
+        
         try {
             $this->db_client->putItem($requestArgs);
         } catch (DynamoDbException $e) {
@@ -244,22 +244,22 @@ class DynamoDbTable
             );
             throw $e;
         }
-
+        
         return true;
     }
-
+    
     public function delete($keys)
     {
         $keyItem = DynamoDbItem::createFromArray($keys, $this->attribute_types);
-
+        
         $requestArgs = [
             "TableName" => $this->table_name,
             "Key"       => $keyItem->getData(),
         ];
-
+        
         $this->db_client->deleteItem($requestArgs);
     }
-
+    
     public function count($conditions,
                           array $fields,
                           array $params,
@@ -275,7 +275,7 @@ class DynamoDbTable
         if ($conditions) {
             $conditionKey               = $usingScan ? "FilterExpression" : "KeyConditionExpression";
             $requestArgs[$conditionKey] = $conditions;
-
+            
             if ($fields) {
                 $requestArgs['ExpressionAttributeNames'] = $fields;
             }
@@ -290,26 +290,26 @@ class DynamoDbTable
                 $requestArgs['IndexName'] = $index_name;
             }
         }
-
+        
         $count   = 0;
         $scanned = 0;
-
+        
         $last_key = null;
         do {
             if ($last_key) {
                 $requestArgs['ExclusiveStartKey'] = $last_key;
             }
             $result   = call_user_func([$this->db_client, $command], $requestArgs);
-            $last_key = $result['LastEvaluatedKey'];
+            $last_key = isset($result['LastEvaluatedKey']) ? $result['LastEvaluatedKey'] : null;
             $count += intval($result['Count']);
             $scanned += intval($result['ScannedCount']);
         } while ($last_key != null);
-
+        
         mdebug("Count = $count from total scanned $scanned");
-
+        
         return $count;
     }
-
+    
     public function query($conditions,
                           array $fields,
                           array $params,
@@ -326,7 +326,7 @@ class DynamoDbTable
         if ($conditions) {
             $conditionKey               = $usingScan ? "FilterExpression" : "KeyConditionExpression";
             $requestArgs[$conditionKey] = $conditions;
-
+            
             if ($fields) {
                 $requestArgs['ExpressionAttributeNames'] = $fields;
             }
@@ -347,20 +347,20 @@ class DynamoDbTable
         if ($page_limit) {
             $requestArgs['Limit'] = $page_limit;
         }
-
+        
         $result   = call_user_func([$this->db_client, $command], $requestArgs);
-        $last_key = $result['LastEvaluatedKey'];
-        $items    = $result['Items'];
-
+        $last_key = isset($result['LastEvaluatedKey']) ? $result['LastEvaluatedKey'] : null;
+        $items    = isset($result['Items']) ? $result['Items'] : [];
+        
         $ret = [];
         foreach ($items as $itemArray) {
             $item  = DynamoDbItem::createFromTypedArray($itemArray);
             $ret[] = $item->toArray();
         }
-
+        
         return $ret;
     }
-
+    
     public function queryAndRun(callable $callback,
                                 $conditions,
                                 array $fields,
@@ -376,7 +376,7 @@ class DynamoDbTable
             }
         } while ($last_key != null);
     }
-
+    
     public function scan($conditions = '',
                          array $fields = [],
                          array $params = [],
@@ -385,7 +385,7 @@ class DynamoDbTable
     {
         return $this->query($conditions, $fields, $params, self::NO_INDEX, $last_key, $page_limit);
     }
-
+    
     public function scanAndRun(callable $callback,
                                $conditions = '',
                                array $fields = [],
@@ -393,7 +393,7 @@ class DynamoDbTable
     {
         $this->queryAndRun($callback, $conditions, $fields, $params, self::NO_INDEX);
     }
-
+    
     /**
      * @return string
      */
@@ -401,7 +401,7 @@ class DynamoDbTable
     {
         return $this->cas_field;
     }
-
+    
     /**
      * @param string $cas_field
      */
@@ -409,7 +409,7 @@ class DynamoDbTable
     {
         $this->cas_field = $cas_field;
     }
-
+    
     /**
      * @return DynamoDbClient
      */
