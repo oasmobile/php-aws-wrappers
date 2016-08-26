@@ -22,27 +22,27 @@ class DynamoDbItem
     const ATTRIBUTE_TYPE_MAP  = 'M';
     const ATTRIBUTE_TYPE_BOOL = 'BOOL';
     const ATTRIBUTE_TYPE_NULL = 'NULL';
-
+    
     protected $data = [];
-
+    
     public static function createFromTypedArray(array $typed_value)
     {
         $ret       = new static;
         $ret->data = $typed_value;
-
+        
         return $ret;
     }
-
+    
     public static function createFromArray(array $normal_value, $known_types = [])
     {
         $ret = new static;
         foreach ($normal_value as $k => &$v) {
-            $ret->data[$k] = static::toTypedValue($v, $known_types[$k]);
+            $ret->data[$k] = static::toTypedValue($v, isset($known_types[$k]) ? $known_types[$k] : null);
         }
-
+        
         return $ret;
     }
-
+    
     protected static function toUntypedValue(&$v)
     {
         if (!is_array($v) || count($v) != 1) {
@@ -50,7 +50,7 @@ class DynamoDbItem
         }
         $value = reset($v);
         $type  = key($v);
-
+        
         switch ($type) {
             case self::ATTRIBUTE_TYPE_STRING:
                 return strval($value);
@@ -81,7 +81,7 @@ class DynamoDbItem
                 foreach ($value as $k => &$vv) {
                     $ret[$k] = static::toUntypedValue($vv);
                 }
-
+                
                 return $ret;
                 break;
             default:
@@ -89,13 +89,13 @@ class DynamoDbItem
                 break;
         }
     }
-
+    
     protected static function toTypedValue(&$v, $type = null)
     {
         if (!$type) {
             $type = static::determineAttributeType($v);
         }
-
+        
         switch ($type) {
             case self::ATTRIBUTE_TYPE_STRING: {
                 if (!$v) {
@@ -139,7 +139,7 @@ class DynamoDbItem
                 foreach ($v as $k => &$vv) {
                     $children[$k] = static::toTypedValue($vv);
                 }
-
+                
                 return [$type => $children];
             }
                 break;
@@ -147,7 +147,7 @@ class DynamoDbItem
                 $const_key = __CLASS__ . "::ATTRIBUTE_TYPE_" . strtoupper($type);
                 if (defined($const_key)) {
                     $type = constant($const_key);
-
+                    
                     return static::toTypedValue($v, $type);
                 }
                 else {
@@ -156,7 +156,7 @@ class DynamoDbItem
             }
         }
     }
-
+    
     protected static function determineAttributeType(&$v)
     {
         if (is_string($v)) {
@@ -180,24 +180,24 @@ class DynamoDbItem
                 }
                 $idx++;
             }
-
+            
             return self::ATTRIBUTE_TYPE_LIST;
         }
         else {
             throw new InvalidDataTypeException("Cannot determine type of attribute: " . print_r($v, true));
         }
     }
-
+    
     public function toArray()
     {
         $ret = [];
         foreach ($this->data as $k => &$v) {
             $ret[$k] = static::toUntypedValue($v);
         }
-
+        
         return $ret;
     }
-
+    
     /**
      * @return mixed
      */
