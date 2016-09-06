@@ -368,13 +368,17 @@ class DynamoDbTable
                                 $index_name = self::PRIMARY_INDEX,
                                 $consistent_read = false)
     {
-        $last_key = null;
+        $last_key          = null;
+        $stoppedByCallback = false;
         do {
             $items = $this->query($conditions, $fields, $params, $index_name, $last_key, 30, $consistent_read);
             foreach ($items as $item) {
-                call_user_func($callback, $item);
+                if (call_user_func($callback, $item) === false) {
+                    $stoppedByCallback = true;
+                    break;
+                }
             }
-        } while ($last_key != null);
+        } while ($last_key != null && !$stoppedByCallback);
     }
     
     public function scan($conditions = '',
