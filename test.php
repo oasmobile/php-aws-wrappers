@@ -7,6 +7,7 @@
  * Time: 17:16
  */
 
+use Oasis\Mlib\AwsWrappers\DynamoDbIndex;
 use Oasis\Mlib\AwsWrappers\DynamoDbItem;
 use Oasis\Mlib\AwsWrappers\DynamoDbManager;
 
@@ -17,7 +18,13 @@ $aws = [
 ];
 
 $man = new DynamoDbManager($aws);
-//$man->createTable('test2', 'id', DynamoDbItem::ATTRIBUTE_TYPE_STRING, "age", DynamoDbItem::ATTRIBUTE_TYPE_NUMBER);
-$man->deleteTable('test2');
-$tables = $man->listTables();
-var_dump($tables);
+$man->createTable(
+    "test3",
+    new DynamoDbIndex("hometown", DynamoDbItem::ATTRIBUTE_TYPE_STRING, "id", DynamoDbItem::ATTRIBUTE_TYPE_NUMBER),
+    [
+        new DynamoDbIndex("hometown2", DynamoDbItem::ATTRIBUTE_TYPE_STRING, "age", DynamoDbItem::ATTRIBUTE_TYPE_NUMBER),
+    ],
+    [
+        new DynamoDbIndex("class", DynamoDbItem::ATTRIBUTE_TYPE_STRING, "age", DynamoDbItem::ATTRIBUTE_TYPE_NUMBER),
+    ]
+);

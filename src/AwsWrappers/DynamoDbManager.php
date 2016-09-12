@@ -58,46 +58,71 @@ class DynamoDbManager
         return $tables;
     }
     
+    /**
+     * @param                 $tableName
+     * @param DynamoDbIndex   $primaryIndex
+     * @param DynamoDbIndex[] $localSecondaryIndices
+     * @param DynamoDbIndex[] $globalSecondaryIndices
+     * @param int             $readCapacity
+     * @param int             $writeCapacity
+     *
+     * @return bool
+     * @internal param DynamoDbIndex $primaryKey
+     */
     public function createTable($tableName,
-                                $hashKeyName,
-                                $hashKeyType,
-                                $rangeKeyName = null,
-                                $rangeKeyType = null,
+                                DynamoDbIndex $primaryIndex,
+                                array $localSecondaryIndices = [],
+                                array $globalSecondaryIndices = [],
                                 $readCapacity = 5,
                                 $writeCapacity = 5
     )
     {
-        $attrDef   = [
-            [
-                "AttributeName" => $hashKeyName,
-                "AttributeType" => $hashKeyType,
-            ],
-        ];
-        $keySchema = [
-            [
-                "AttributeName" => $hashKeyName,
-                "KeyType"       => "HASH",
-            ],
-        ];
-        if ($rangeKeyName) {
-            $attrDef[]   = [
-                "AttributeName" => $rangeKeyName,
-                "AttributeType" => $rangeKeyType,
+        $attrDef = $primaryIndex->getAttributeDefinitions();
+        foreach ($globalSecondaryIndices as $gsi) {
+            $gsiDef  = $gsi->getAttributeDefinitions();
+            $attrDef = array_merge($attrDef, $gsiDef);
+        }
+        foreach ($localSecondaryIndices as $lsi) {
+            $lsiDef  = $lsi->getAttributeDefinitions();
+            $attrDef = array_merge($attrDef, $lsiDef);
+        }
+        
+        $attrDef = array_values($attrDef);
+        
+        $keySchema = $primaryIndex->getKeySchema();
+        
+        $gsiDef = [];
+        foreach ($globalSecondaryIndices as $globalSecondaryIndex) {
+            $gsiDef[] = [
+                "IndexName"             => $globalSecondaryIndex->getName(),
+                "KeySchema"             => $globalSecondaryIndex->getKeySchema(),
+                "Projection"            => $globalSecondaryIndex->getProjection(),
+                "ProvisionedThroughput" => [
+                    "ReadCapacityUnits"  => $readCapacity,
+                    "WriteCapacityUnits" => $writeCapacity,
+                ],
             ];
-            $keySchema[] = [
-                "AttributeName" => $rangeKeyName,
-                "KeyType"       => "RANGE",
+        }
+        
+        $lsiDef = [];
+        foreach ($localSecondaryIndices as $localSecondaryIndex) {
+            $lsiDef[] = [
+                "IndexName"  => $localSecondaryIndex->getName(),
+                "KeySchema"  => $localSecondaryIndex->getKeySchema(),
+                "Projection" => $localSecondaryIndex->getProjection(),
             ];
         }
         
         $args = [
-            "TableName"             => $tableName,
-            "ProvisionedThroughput" => [
+            "TableName"              => $tableName,
+            "ProvisionedThroughput"  => [
                 "ReadCapacityUnits"  => $readCapacity,
                 "WriteCapacityUnits" => $writeCapacity,
             ],
-            "AttributeDefinitions"  => $attrDef,
-            "KeySchema"             => $keySchema,
+            "AttributeDefinitions"   => $attrDef,
+            "KeySchema"              => $keySchema,
+            "GlobalSecondaryIndexes" => $gsiDef,
+            "LocalSecondaryIndexes"  => $lsiDef,
         ];
         
         $result = $this->db->createTable($args);
