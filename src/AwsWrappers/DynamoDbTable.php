@@ -51,8 +51,11 @@ class DynamoDbTable
         return $result['Table'];
     }
     
-    public function addGlobalSecondaryIndices(DynamoDbIndex $gsi, $readCapacity = 5, $writeCapacity = 5)
+    public function addGlobalSecondaryIndex(DynamoDbIndex $gsi, $readCapacity = 5, $writeCapacity = 5)
     {
+        if ($this->getGlobalSecondaryIndices(sprintf("/%s/", preg_quote($gsi->getName(), "/")))) {
+            throw new \RuntimeException("Global Secondary Index exists, name = " . $gsi->getName());
+        }
         $args = [
             'AttributeDefinitions'        => $gsi->getAttributeDefinitions(false),
             'GlobalSecondaryIndexUpdates' => [
@@ -70,11 +73,29 @@ class DynamoDbTable
             ],
             'TableName'                   => $this->tableName,
         ];
-        var_dump($args);
         $this->dbClient->updateTable($args);
     }
     
-    public function getGlobalSecondaryIndices()
+    public function deleteGlobalSecondaryIndex($indexName)
+    {
+        if (!$this->getGlobalSecondaryIndices(sprintf("/%s/", preg_quote($indexName, "/")))) {
+            throw new \RuntimeException("Global Secondary Index doesn't exist, name = $indexName");
+        }
+        
+        $args = [
+            'GlobalSecondaryIndexUpdates' => [
+                [
+                    'Delete' => [
+                        'IndexName' => $indexName,
+                    ],
+                ],
+            ],
+            'TableName'                   => $this->tableName,
+        ];
+        $this->dbClient->updateTable($args);
+    }
+    
+    public function getGlobalSecondaryIndices($namePattern = "/.*/")
     {
         $description = $this->describe();
         $gsiDefs     = isset($description['GlobalSecondaryIndexes']) ? $description['GlobalSecondaryIndexes'] : null;
@@ -88,6 +109,10 @@ class DynamoDbTable
         
         $gsis = [];
         foreach ($gsiDefs as $gsiDef) {
+            $indexName = $gsiDef['IndexName'];
+            if (!preg_match($namePattern, $indexName)) {
+                continue;
+            }
             $hashKey      = null;
             $hashKeyType  = null;
             $rangeKey     = null;
@@ -115,8 +140,8 @@ class DynamoDbTable
                 $projectionType,
                 $projectedAttributes
             );
-            $gsi->setName($gsiDef['IndexName']);
-            $gsis[] = $gsi;
+            $gsi->setName($indexName);
+            $gsis[$indexName] = $gsi;
         }
         
         return $gsis;

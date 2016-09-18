@@ -42,22 +42,23 @@ $table = new DynamoDbTable($aws, 'test2');
 //        DynamoDbIndex::PROJECTION_TYPE_KEYS_ONLY
 //    )
 //);
-
-$table->set(
-    [
-        'hometown' => 'beijing',
-        'id'       => 2,
-        'type'     => 'student',
-        'age'      => 18,
-        'class'    => 'A',
-    ]
-);
-$table->scanAndRun(
-    function ($item) {
-        var_dump($item);
-    },
-    '#type = :type',
-    ['#type' => 'type'],
-    [':type' => 'student'],
-    true
-);
+$table->deleteGlobalSecondaryIndex('type-age-index');
+//
+//$table->set(
+//    [
+//        'hometown' => 'beijing',
+//        'id'       => 2,
+//        'type'     => 'student',
+//        'age'      => 18,
+//        'class'    => 'A',
+//    ]
+//);
+//$table->scanAndRun(
+//    function ($item) {
+//        var_dump($item);
+//    },
+//    '#type = :type',
+//    ['#type' => 'type'],
+//    [':type' => 'student'],
+//    true
+//);
