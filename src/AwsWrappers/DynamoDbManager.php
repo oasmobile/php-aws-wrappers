@@ -29,13 +29,18 @@ class DynamoDbManager
         $this->db     = new DynamoDbClient($this->config);
     }
     
-    public function listTables()
+    /**
+     * @param string $pattern a pattern that table name should match, if emtpy, all tables will be returned
+     *
+     * @return array
+     */
+    public function listTables($pattern = '/.*/')
     {
         $tables                 = [];
         $lastEvaluatedTableName = null;
         do {
             $args = [
-                "Limit" => 2,
+                "Limit" => 30,
             ];
             if ($lastEvaluatedTableName) {
                 $args['ExclusiveStartTableName'] = $lastEvaluatedTableName;
@@ -52,7 +57,11 @@ class DynamoDbManager
                 $lastEvaluatedTableName = null;
             }
             
-            $tables = array_merge($tables, $result['TableNames']);
+            foreach ($result['TableNames'] as $tableName) {
+                if (preg_match($pattern, $tableName)) {
+                    $tables[] = $tableName;
+                }
+            }
         } while ($lastEvaluatedTableName != null);
         
         return $tables;

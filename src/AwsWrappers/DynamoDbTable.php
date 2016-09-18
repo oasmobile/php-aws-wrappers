@@ -19,36 +19,155 @@ class DynamoDbTable
     const NO_INDEX      = null;
     
     /** @var DynamoDbClient */
-    protected $db_client;
+    protected $dbClient;
     
     protected $config;
     
-    protected $table_name;
-    protected $cas_field       = '';
-    protected $attribute_types = [];
+    protected $tableName;
+    protected $casField       = '';
+    protected $attributeTypes = [];
     
     function __construct(array $aws_config, $table_name, $attribute_types = [], $cas_field = '')
     {
-        $dp                    = new ArrayDataProvider($aws_config);
-        $this->config          = [
+        $dp                   = new ArrayDataProvider($aws_config);
+        $this->config         = [
             'version' => "2012-08-10",
             "profile" => $dp->getMandatory('profile'),
             "region"  => $dp->getMandatory('region'),
         ];
-        $this->db_client       = new DynamoDbClient($this->config);
-        $this->table_name      = $table_name;
-        $this->attribute_types = $attribute_types;
-        $this->cas_field       = $cas_field;
+        $this->dbClient       = new DynamoDbClient($this->config);
+        $this->tableName      = $table_name;
+        $this->attributeTypes = $attribute_types;
+        $this->casField       = $cas_field;
     }
     
     public function describe()
     {
         $requestArgs = [
-            "TableName" => $this->table_name,
+            "TableName" => $this->tableName,
         ];
-        $result      = $this->db_client->describeTable($requestArgs);
+        $result      = $this->dbClient->describeTable($requestArgs);
         
-        return $result;
+        return $result['Table'];
+    }
+    
+    public function addGlobalSecondaryIndices(DynamoDbIndex $gsi, $readCapacity = 5, $writeCapacity = 5)
+    {
+        $args = [
+            'AttributeDefinitions'        => $gsi->getAttributeDefinitions(false),
+            'GlobalSecondaryIndexUpdates' => [
+                [
+                    'Create' => [
+                        'IndexName'             => $gsi->getName(),
+                        'KeySchema'             => $gsi->getKeySchema(),
+                        'Projection'            => $gsi->getProjection(),
+                        'ProvisionedThroughput' => [
+                            'ReadCapacityUnits'  => $readCapacity,
+                            'WriteCapacityUnits' => $writeCapacity,
+                        ],
+                    ],
+                ],
+            ],
+            'TableName'                   => $this->tableName,
+        ];
+        var_dump($args);
+        $this->dbClient->updateTable($args);
+    }
+    
+    public function getGlobalSecondaryIndices()
+    {
+        $description = $this->describe();
+        $gsiDefs     = isset($description['GlobalSecondaryIndexes']) ? $description['GlobalSecondaryIndexes'] : null;
+        if (!$gsiDefs) {
+            return [];
+        }
+        $attrDefs = [];
+        foreach ($description['AttributeDefinitions'] as $attributeDefinition) {
+            $attrDefs[$attributeDefinition['AttributeName']] = $attributeDefinition['AttributeType'];
+        }
+        
+        $gsis = [];
+        foreach ($gsiDefs as $gsiDef) {
+            $hashKey      = null;
+            $hashKeyType  = null;
+            $rangeKey     = null;
+            $rangeKeyType = null;
+            foreach ($gsiDef['KeySchema'] as $keySchema) {
+                switch ($keySchema['KeyType']) {
+                    case "HASH":
+                        $hashKey     = $keySchema['AttributeName'];
+                        $hashKeyType = $attrDefs[$hashKey];
+                        break;
+                    case "RANGE":
+                        $rangeKey     = $keySchema['AttributeName'];
+                        $rangeKeyType = $attrDefs[$rangeKey];
+                        break;
+                }
+            }
+            $projectionType      = $gsiDef['Projection']['ProjectionType'];
+            $projectedAttributes = isset($gsiDef['Projection']['NonKeyAttributes']) ?
+                $gsiDef['Projection']['NonKeyAttributes'] : [];
+            $gsi                 = new DynamoDbIndex(
+                $hashKey,
+                $hashKeyType,
+                $rangeKey,
+                $rangeKeyType,
+                $projectionType,
+                $projectedAttributes
+            );
+            $gsi->setName($gsiDef['IndexName']);
+            $gsis[] = $gsi;
+        }
+        
+        return $gsis;
+    }
+    
+    public function getLocalSecondaryIndices()
+    {
+        $description = $this->describe();
+        $lsiDefs     = isset($description['LocalSecondaryIndexes']) ? $description['LocalSecondaryIndexes'] : null;
+        if (!$lsiDefs) {
+            return [];
+        }
+        $attrDefs = [];
+        foreach ($description['AttributeDefinitions'] as $attributeDefinition) {
+            $attrDefs[$attributeDefinition['AttributeName']] = $attributeDefinition['AttributeType'];
+        }
+        
+        $lsis = [];
+        foreach ($lsiDefs as $lsiDef) {
+            $hashKey      = null;
+            $hashKeyType  = null;
+            $rangeKey     = null;
+            $rangeKeyType = null;
+            foreach ($lsiDef['KeySchema'] as $keySchema) {
+                switch ($keySchema['KeyType']) {
+                    case "HASH":
+                        $hashKey     = $keySchema['AttributeName'];
+                        $hashKeyType = $attrDefs[$hashKey];
+                        break;
+                    case "RANGE":
+                        $rangeKey     = $keySchema['AttributeName'];
+                        $rangeKeyType = $attrDefs[$rangeKey];
+                        break;
+                }
+            }
+            $projectionType      = $lsiDef['Projection']['ProjectionType'];
+            $projectedAttributes = isset($lsiDef['Projection']['NonKeyAttributes']) ?
+                $lsiDef['Projection']['NonKeyAttributes'] : [];
+            $lsi                 = new DynamoDbIndex(
+                $hashKey,
+                $hashKeyType,
+                $rangeKey,
+                $rangeKeyType,
+                $projectionType,
+                $projectedAttributes
+            );
+            $lsi->setName($lsiDef['IndexName']);
+            $lsis[] = $lsi;
+        }
+        
+        return $lsis;
     }
     
     public function getConsumedCapacity($indexName = self::PRIMARY_INDEX,
@@ -73,7 +192,7 @@ class DynamoDbTable
             "Dimensions" => [
                 [
                     "Name"  => "TableName",
-                    "Value" => $this->table_name,
+                    "Value" => $this->tableName,
                 ],
                 //[
                 //    "Name"  => "Operation",
@@ -146,7 +265,7 @@ class DynamoDbTable
     public function setThroughput($read, $write, $indexName = self::PRIMARY_INDEX)
     {
         $requestArgs  = [
-            "TableName" => $this->table_name,
+            "TableName" => $this->tableName,
         ];
         $updateObject = [
             'ReadCapacityUnits'  => $read,
@@ -167,7 +286,7 @@ class DynamoDbTable
         }
         
         try {
-            $this->db_client->updateTable($requestArgs);
+            $this->dbClient->updateTable($requestArgs);
         } catch (DynamoDbException $e) {
             if ($e->getAwsErrorCode() == "ValidationException"
                 && $e->getAwsErrorType() == "client"
@@ -183,23 +302,23 @@ class DynamoDbTable
     
     public function setAttributeType($name, $type)
     {
-        $this->attribute_types[$name] = $type;
+        $this->attributeTypes[$name] = $type;
         
         return $this;
     }
     
     public function get(array $keys, $is_consistent_read = false)
     {
-        $keyItem     = DynamoDbItem::createFromArray($keys, $this->attribute_types);
+        $keyItem     = DynamoDbItem::createFromArray($keys, $this->attributeTypes);
         $requestArgs = [
-            "TableName" => $this->table_name,
+            "TableName" => $this->tableName,
             "Key"       => $keyItem->getData(),
         ];
         if ($is_consistent_read) {
             $requestArgs["ConsistentRead"] = true;
         }
         
-        $result = $this->db_client->getItem($requestArgs);
+        $result = $this->dbClient->getItem($requestArgs);
         if ($result['Item']) {
             $item = DynamoDbItem::createFromTypedArray((array)$result['Item']);
             
@@ -213,24 +332,24 @@ class DynamoDbTable
     public function set(array $obj, $cas = false)
     {
         $requestArgs = [
-            "TableName" => $this->table_name,
+            "TableName" => $this->tableName,
         ];
         
-        if ($this->cas_field) {
-            $old_cas               = $obj[$this->cas_field];
-            $obj[$this->cas_field] = time();
+        if ($this->casField) {
+            $old_cas              = $obj[$this->casField];
+            $obj[$this->casField] = time();
             
             if ($old_cas && $cas) {
                 $requestArgs['ConditionExpression']       = "#CAS = :cas_val";
-                $requestArgs['ExpressionAttributeNames']  = ["#CAS" => $this->cas_field];
+                $requestArgs['ExpressionAttributeNames']  = ["#CAS" => $this->casField];
                 $requestArgs['ExpressionAttributeValues'] = [":cas_val" => ["N" => strval(intval($old_cas))]];
             }
         }
-        $item                = DynamoDbItem::createFromArray($obj, $this->attribute_types);
+        $item                = DynamoDbItem::createFromArray($obj, $this->attributeTypes);
         $requestArgs['Item'] = $item->getData();
         
         try {
-            $this->db_client->putItem($requestArgs);
+            $this->dbClient->putItem($requestArgs);
         } catch (DynamoDbException $e) {
             if ($e->getAwsErrorCode() == "ConditionalCheckFailedException") {
                 return false;
@@ -250,14 +369,14 @@ class DynamoDbTable
     
     public function delete($keys)
     {
-        $keyItem = DynamoDbItem::createFromArray($keys, $this->attribute_types);
+        $keyItem = DynamoDbItem::createFromArray($keys, $this->attributeTypes);
         
         $requestArgs = [
-            "TableName" => $this->table_name,
+            "TableName" => $this->tableName,
             "Key"       => $keyItem->getData(),
         ];
         
-        $this->db_client->deleteItem($requestArgs);
+        $this->dbClient->deleteItem($requestArgs);
     }
     
     public function count($conditions,
@@ -269,7 +388,7 @@ class DynamoDbTable
         $usingScan   = ($index_name === self::NO_INDEX);
         $command     = $usingScan ? "scan" : "query";
         $requestArgs = [
-            "TableName" => $this->table_name,
+            "TableName" => $this->tableName,
             "Select"    => "COUNT",
         ];
         if ($conditions) {
@@ -299,7 +418,7 @@ class DynamoDbTable
             if ($last_key) {
                 $requestArgs['ExclusiveStartKey'] = $last_key;
             }
-            $result   = call_user_func([$this->db_client, $command], $requestArgs);
+            $result   = call_user_func([$this->dbClient, $command], $requestArgs);
             $last_key = isset($result['LastEvaluatedKey']) ? $result['LastEvaluatedKey'] : null;
             $count += intval($result['Count']);
             $scanned += intval($result['ScannedCount']);
@@ -321,7 +440,8 @@ class DynamoDbTable
         $usingScan   = ($index_name === self::NO_INDEX);
         $command     = $usingScan ? "scan" : "query";
         $requestArgs = [
-            "TableName" => $this->table_name,
+            "TableName"      => $this->tableName,
+            'ConsistentRead' => $consistent_read,
         ];
         if ($conditions) {
             $conditionKey               = $usingScan ? "FilterExpression" : "KeyConditionExpression";
@@ -336,7 +456,6 @@ class DynamoDbTable
             }
         }
         if (!$usingScan) {
-            $requestArgs['ConsistentRead'] = $consistent_read;
             if ($index_name !== self::PRIMARY_INDEX) {
                 $requestArgs['IndexName'] = $index_name;
             }
@@ -348,7 +467,7 @@ class DynamoDbTable
             $requestArgs['Limit'] = $page_limit;
         }
         
-        $result   = call_user_func([$this->db_client, $command], $requestArgs);
+        $result   = call_user_func([$this->dbClient, $command], $requestArgs);
         $last_key = isset($result['LastEvaluatedKey']) ? $result['LastEvaluatedKey'] : null;
         $items    = isset($result['Items']) ? $result['Items'] : [];
         
@@ -385,17 +504,19 @@ class DynamoDbTable
                          array $fields = [],
                          array $params = [],
                          &$last_key = null,
-                         $page_limit = 30)
+                         $page_limit = 30,
+                         $consistent_read = false)
     {
-        return $this->query($conditions, $fields, $params, self::NO_INDEX, $last_key, $page_limit);
+        return $this->query($conditions, $fields, $params, self::NO_INDEX, $last_key, $page_limit, $consistent_read);
     }
     
     public function scanAndRun(callable $callback,
                                $conditions = '',
                                array $fields = [],
-                               array $params = [])
+                               array $params = [],
+                               $consistent_read = false)
     {
-        $this->queryAndRun($callback, $conditions, $fields, $params, self::NO_INDEX);
+        $this->queryAndRun($callback, $conditions, $fields, $params, self::NO_INDEX, $consistent_read);
     }
     
     /**
@@ -403,15 +524,15 @@ class DynamoDbTable
      */
     public function getCasField()
     {
-        return $this->cas_field;
+        return $this->casField;
     }
     
     /**
-     * @param string $cas_field
+     * @param string $casField
      */
-    public function setCasField($cas_field)
+    public function setCasField($casField)
     {
-        $this->cas_field = $cas_field;
+        $this->casField = $casField;
     }
     
     /**
@@ -419,6 +540,6 @@ class DynamoDbTable
      */
     public function getDbClient()
     {
-        return $this->db_client;
+        return $this->dbClient;
     }
 }
