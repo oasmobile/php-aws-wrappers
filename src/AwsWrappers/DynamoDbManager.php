@@ -123,16 +123,20 @@ class DynamoDbManager
         }
         
         $args = [
-            "TableName"              => $tableName,
-            "ProvisionedThroughput"  => [
+            "TableName"             => $tableName,
+            "ProvisionedThroughput" => [
                 "ReadCapacityUnits"  => $readCapacity,
                 "WriteCapacityUnits" => $writeCapacity,
             ],
-            "AttributeDefinitions"   => $attrDef,
-            "KeySchema"              => $keySchema,
-            "GlobalSecondaryIndexes" => $gsiDef,
-            "LocalSecondaryIndexes"  => $lsiDef,
+            "AttributeDefinitions"  => $attrDef,
+            "KeySchema"             => $keySchema,
         ];
+        if ($gsiDef) {
+            $args["GlobalSecondaryIndexes"] = $gsiDef;
+        }
+        if ($lsiDef) {
+            $args["LocalSecondaryIndexes"] = $lsiDef;
+        }
         
         $result = $this->db->createTable($args);
         
