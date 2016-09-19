@@ -189,7 +189,7 @@ class DynamoDbTable
                 $projectedAttributes
             );
             $lsi->setName($lsiDef['IndexName']);
-            $lsis[] = $lsi;
+            $lsis[$lsi->getName()] = $lsi;
         }
         
         return $lsis;
