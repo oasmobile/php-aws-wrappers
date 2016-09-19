@@ -195,6 +195,41 @@ class DynamoDbTable
         return $lsis;
     }
     
+    public function getPrimaryIndex()
+    {
+        $description = $this->describe();
+        $attrDefs    = [];
+        foreach ($description['AttributeDefinitions'] as $attributeDefinition) {
+            $attrDefs[$attributeDefinition['AttributeName']] = $attributeDefinition['AttributeType'];
+        }
+        
+        $hashKey      = null;
+        $hashKeyType  = null;
+        $rangeKey     = null;
+        $rangeKeyType = null;
+        $keySchemas   = $description['KeySchema'];
+        foreach ($keySchemas as $keySchema) {
+            switch ($keySchema['KeyType']) {
+                case "HASH":
+                    $hashKey     = $keySchema['AttributeName'];
+                    $hashKeyType = $attrDefs[$hashKey];
+                    break;
+                case "RANGE":
+                    $rangeKey     = $keySchema['AttributeName'];
+                    $rangeKeyType = $attrDefs[$rangeKey];
+                    break;
+            }
+        }
+        $primaryIndex = new DynamoDbIndex(
+            $hashKey,
+            $hashKeyType,
+            $rangeKey,
+            $rangeKeyType
+        );
+        
+        return $primaryIndex;
+    }
+    
     public function getConsumedCapacity($indexName = self::PRIMARY_INDEX,
                                         $period = 60,
                                         $num_of_period = 5,

@@ -170,4 +170,34 @@ class DynamoDbIndex
     {
         return $this->rangeKeyType;
     }
+    
+    public function equals(DynamoDbIndex $other)
+    {
+        if ($this->projectionType != $other->projectionType) {
+            return false;
+        }
+        if ($this->projectionType == self::PROJECTION_TYPE_INCLUDE
+            && (array_diff_assoc($this->projectedAttributes, $other->projectedAttributes)
+                || array_diff_assoc($other->projectedAttributes, $this->projectedAttributes))
+        ) {
+            return false;
+        }
+        
+        if ($this->hashKey != $other->hashKey
+            || $this->hashKeyType != $other->hashKeyType
+        ) {
+            return false;
+        }
+        
+        if (($this->rangeKey || $other->rangeKey)
+            && (
+                $this->rangeKey != $other->rangeKey
+                || $this->rangeKeyType != $other->rangeKeyType
+            )
+        ) {
+            return false;
+        }
+        
+        return true;
+    }
 }

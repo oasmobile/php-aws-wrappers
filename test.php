@@ -7,6 +7,7 @@
  * Time: 17:16
  */
 
+use Oasis\Mlib\AwsWrappers\DynamoDbIndex;
 use Oasis\Mlib\AwsWrappers\DynamoDbTable;
 
 require_once __DIR__ . "/vendor/autoload.php";
@@ -42,7 +43,25 @@ $table = new DynamoDbTable($aws, 'test2');
 //        DynamoDbIndex::PROJECTION_TYPE_KEYS_ONLY
 //    )
 //);
-$table->deleteGlobalSecondaryIndex('type-age-index');
+$pidx = $table->getPrimaryIndex();
+var_dump($pidx);
+$pidx = new DynamoDbIndex(
+    $pidx->getHashKey(),
+    $pidx->getHashKeyType(),
+    $pidx->getRangeKey(),
+    $pidx->getRangeKeyType(),
+    DynamoDbIndex::PROJECTION_TYPE_INCLUDE,
+    ['class2']
+);
+$pidx2 = new DynamoDbIndex(
+    $pidx->getHashKey(),
+    $pidx->getHashKeyType(),
+    $pidx->getRangeKey(),
+    $pidx->getRangeKeyType(),
+    DynamoDbIndex::PROJECTION_TYPE_INCLUDE,
+    ['class2']
+);
+var_dump($pidx->equals($pidx2));
 //
 //$table->set(
 //    [
