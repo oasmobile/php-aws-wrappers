@@ -28,56 +28,11 @@ $aws = [
 //    ]
 //);
 
-$table = new DynamoDbTable($aws, 'test2');
-//$gsis  = $table->getGlobalSecondaryIndices();
-//var_dump($gsis);
-//$lsis  = $table->getLocalSecondaryIndices();
-//var_dump($lsis);
-
-//$table->addGlobalSecondaryIndices(
-//    new DynamoDbIndex(
-//        'type',
-//        DynamoDbItem::ATTRIBUTE_TYPE_STRING,
-//        'age',
-//        DynamoDbItem::ATTRIBUTE_TYPE_NUMBER,
-//        DynamoDbIndex::PROJECTION_TYPE_KEYS_ONLY
-//    )
-//);
-$pidx = $table->getPrimaryIndex();
-var_dump($pidx);
-$pidx = new DynamoDbIndex(
-    $pidx->getHashKey(),
-    $pidx->getHashKeyType(),
-    $pidx->getRangeKey(),
-    $pidx->getRangeKeyType(),
-    DynamoDbIndex::PROJECTION_TYPE_INCLUDE,
-    ['class2']
-);
-$pidx2 = new DynamoDbIndex(
-    $pidx->getHashKey(),
-    $pidx->getHashKeyType(),
-    $pidx->getRangeKey(),
-    $pidx->getRangeKeyType(),
-    DynamoDbIndex::PROJECTION_TYPE_INCLUDE,
-    ['class2']
-);
-var_dump($pidx->equals($pidx2));
-//
-//$table->set(
-//    [
-//        'hometown' => 'beijing',
-//        'id'       => 2,
-//        'type'     => 'student',
-//        'age'      => 18,
-//        'class'    => 'A',
-//    ]
-//);
-//$table->scanAndRun(
-//    function ($item) {
-//        var_dump($item);
-//    },
-//    '#type = :type',
-//    ['#type' => 'type'],
-//    [':type' => 'student'],
-//    true
-//);
+$table = new DynamoDbTable($aws, 'export-test-items');
+$enabled = $table->isStreamEnabled($type);
+var_dump($enabled);
+var_dump($type);
+$table->enableStream();
+$enabled = $table->isStreamEnabled($type);
+var_dump($enabled);
+var_dump($type);

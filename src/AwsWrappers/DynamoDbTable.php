@@ -51,6 +51,44 @@ class DynamoDbTable
         return $result['Table'];
     }
     
+    public function isStreamEnabled(&$streamViewType = null)
+    {
+        $streamViewType = null;
+        $description    = $this->describe();
+        
+        if (!isset($description['StreamSpecification'])) {
+            return false;
+        }
+        
+        $isEnabled      = $description['StreamSpecification']['StreamEnabled'];
+        $streamViewType = $description['StreamSpecification']['StreamViewType'];
+        
+        return $isEnabled;
+    }
+    
+    public function enableStream($type = "NEW_AND_OLD_IMAGES")
+    {
+        $args = [
+            "TableName"           => $this->tableName,
+            "StreamSpecification" => [
+                'StreamEnabled'  => true,
+                'StreamViewType' => $type,
+            ],
+        ];
+        $this->dbClient->updateTable($args);
+    }
+    
+    public function disableStream()
+    {
+        $args = [
+            "TableName" => $this->tableName,
+            "StreamSpecification" => [
+                'StreamEnabled' => false,
+            ],
+        ];
+        $this->dbClient->updateTable($args);
+    }
+    
     public function addGlobalSecondaryIndex(DynamoDbIndex $gsi, $readCapacity = 5, $writeCapacity = 5)
     {
         if ($this->getGlobalSecondaryIndices(sprintf("/%s/", preg_quote($gsi->getName(), "/")))) {
