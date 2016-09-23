@@ -427,7 +427,7 @@ class DynamoDbTable
         }
     }
     
-    public function set(array $obj, $checkAndSet = false)
+    public function set(array $obj, $checkAndSet = false, &$casValue = null)
     {
         $requestArgs = [
             "TableName" => $this->tableName,
@@ -435,7 +435,8 @@ class DynamoDbTable
         
         if ($this->casField) {
             $old_cas              = isset($obj[$this->casField]) ? $obj[$this->casField] : null;
-            $obj[$this->casField] = time();
+            $casValue             = time();
+            $obj[$this->casField] = $casValue;
             
             if ($checkAndSet) {
                 if ($old_cas) {
