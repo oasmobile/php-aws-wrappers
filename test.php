@@ -7,7 +7,6 @@
  * Time: 17:16
  */
 
-use Oasis\Mlib\AwsWrappers\DynamoDbIndex;
 use Oasis\Mlib\AwsWrappers\DynamoDbTable;
 
 require_once __DIR__ . "/vendor/autoload.php";
@@ -28,11 +27,13 @@ $aws = [
 //    ]
 //);
 
-$table = new DynamoDbTable($aws, 'export-test-items');
-$enabled = $table->isStreamEnabled($type);
-var_dump($enabled);
-var_dump($type);
-$table->enableStream();
-$enabled = $table->isStreamEnabled($type);
-var_dump($enabled);
-var_dump($type);
+$table = new DynamoDbTable($aws, 'export-test-items', [], 'dirtyTime');
+
+$ret = $table->set(
+    [
+        "id"        => "1234",
+        'dirtyTime' => 1474621533,
+    ],
+    true
+);
+var_dump($ret);

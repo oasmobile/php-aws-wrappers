@@ -81,7 +81,7 @@ class DynamoDbTable
     public function disableStream()
     {
         $args = [
-            "TableName" => $this->tableName,
+            "TableName"           => $this->tableName,
             "StreamSpecification" => [
                 'StreamEnabled' => false,
             ],
@@ -427,20 +427,26 @@ class DynamoDbTable
         }
     }
     
-    public function set(array $obj, $cas = false)
+    public function set(array $obj, $checkAndSet = false)
     {
         $requestArgs = [
             "TableName" => $this->tableName,
         ];
         
         if ($this->casField) {
-            $old_cas              = $obj[$this->casField];
+            $old_cas              = isset($obj[$this->casField]) ? $obj[$this->casField] : null;
             $obj[$this->casField] = time();
             
-            if ($old_cas && $cas) {
-                $requestArgs['ConditionExpression']       = "#CAS = :cas_val";
-                $requestArgs['ExpressionAttributeNames']  = ["#CAS" => $this->casField];
-                $requestArgs['ExpressionAttributeValues'] = [":cas_val" => ["N" => strval(intval($old_cas))]];
+            if ($checkAndSet) {
+                if ($old_cas) {
+                    $requestArgs['ConditionExpression']       = "#CAS = :cas_val";
+                    $requestArgs['ExpressionAttributeNames']  = ["#CAS" => $this->casField];
+                    $requestArgs['ExpressionAttributeValues'] = [":cas_val" => ["N" => strval(intval($old_cas))]];
+                }
+                else {
+                    $requestArgs['ConditionExpression']      = "attribute_not_exists(#CAS)";
+                    $requestArgs['ExpressionAttributeNames'] = ["#CAS" => $this->casField];
+                }
             }
         }
         $item                = DynamoDbItem::createFromArray($obj, $this->attributeTypes);
