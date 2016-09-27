@@ -7,33 +7,27 @@
  * Time: 17:16
  */
 
-use Oasis\Mlib\AwsWrappers\DynamoDbTable;
+use Oasis\Mlib\AwsWrappers\SqsQueue;
 
 require_once __DIR__ . "/vendor/autoload.php";
 $aws = [
     'profile' => 'oasis-minhao',
     'region'  => 'ap-northeast-1',
 ];
+$sqs = new SqsQueue($aws, 'sqs-test-queue');
 
-//$man = new DynamoDbManager($aws);
-//$man->createTable(
-//    "test3",
-//    new DynamoDbIndex("hometown", DynamoDbItem::ATTRIBUTE_TYPE_STRING, "id", DynamoDbItem::ATTRIBUTE_TYPE_NUMBER),
-//    [
-//        new DynamoDbIndex("hometown2", DynamoDbItem::ATTRIBUTE_TYPE_STRING, "age", DynamoDbItem::ATTRIBUTE_TYPE_NUMBER),
-//    ],
-//    [
-//        new DynamoDbIndex("class", DynamoDbItem::ATTRIBUTE_TYPE_STRING, "age", DynamoDbItem::ATTRIBUTE_TYPE_NUMBER),
-//    ]
+$sqs->createQueue([SqsQueue::DELAY_SECONDS => 60]);
+var_dump($sqs->exists());
+var_dump($sqs->getAttribute(SqsQueue::DELAY_SECONDS));
+//$sqs->deleteQueue();
+//var_dump($sqs->exists());
+//
+//var_dump($sqs->getAttributes(SqsQueue::ALL_ATTRIBUTES));
+//var_dump(
+//    $sqs->setAttributes(
+//        [
+//            SqsQueue::VISIBILITY_TIMEOUT => 3600,
+//        ]
+//    )
 //);
-
-$table = new DynamoDbTable($aws, 'export-test-items', [], 'dirtyTime');
-
-$ret = $table->set(
-    [
-        "id"        => "1234",
-        'dirtyTime' => 1474621533,
-    ],
-    true
-);
-var_dump($ret);
+//var_dump($sqs->getAttributes(SqsQueue::ALL_ATTRIBUTES));
