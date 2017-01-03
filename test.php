@@ -7,27 +7,26 @@
  * Time: 17:16
  */
 
-use Oasis\Mlib\AwsWrappers\SqsQueue;
+use Oasis\Mlib\AwsWrappers\DynamoDbTable;
 
 require_once __DIR__ . "/vendor/autoload.php";
 $aws = [
     'profile' => 'oasis-minhao',
     'region'  => 'ap-northeast-1',
 ];
-$sqs = new SqsQueue($aws, 'sqs-test-queue');
 
-$sqs->createQueue([SqsQueue::DELAY_SECONDS => 60]);
-var_dump($sqs->exists());
-var_dump($sqs->getAttribute(SqsQueue::DELAY_SECONDS));
-//$sqs->deleteQueue();
-//var_dump($sqs->exists());
-//
-//var_dump($sqs->getAttributes(SqsQueue::ALL_ATTRIBUTES));
-//var_dump(
-//    $sqs->setAttributes(
-//        [
-//            SqsQueue::VISIBILITY_TIMEOUT => 3600,
-//        ]
-//    )
-//);
-//var_dump($sqs->getAttributes(SqsQueue::ALL_ATTRIBUTES));
+$table = new DynamoDbTable($aws, "watch-test-values");
+$old   = $table->get(["appHash" => "abc", "timestamp" => 123]);
+//var_dump($old);
+$ret = $table->set(
+    [
+        "appHash"   => "abc",
+        "timestamp" => 123,
+        "age"       => 12,
+        "gender"    => "f",
+        //"code"      => null,
+    ],
+    ["age" => 12, "gender" => "f", "code" => 54]
+);
+
+var_dump($ret);

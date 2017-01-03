@@ -24,21 +24,19 @@ class DynamoDbTable
     protected $config;
     
     protected $tableName;
-    protected $casField       = '';
     protected $attributeTypes = [];
     
-    function __construct(array $aws_config, $table_name, $attribute_types = [], $cas_field = '')
+    function __construct(array $awsConfig, $tableName, $attributeTypes = [])
     {
-        $dp                   = new ArrayDataProvider($aws_config);
+        $dp                   = new ArrayDataProvider($awsConfig);
         $this->config         = [
             'version' => "2012-08-10",
             "profile" => $dp->getMandatory('profile'),
             "region"  => $dp->getMandatory('region'),
         ];
         $this->dbClient       = new DynamoDbClient($this->config);
-        $this->tableName      = $table_name;
-        $this->attributeTypes = $attribute_types;
-        $this->casField       = $cas_field;
+        $this->tableName      = $tableName;
+        $this->attributeTypes = $attributeTypes;
     }
     
     public function describe()
@@ -427,28 +425,36 @@ class DynamoDbTable
         }
     }
     
-    public function set(array $obj, $checkAndSet = false, &$casValue = null)
+    public function set(array $obj, $checkValues = [])
     {
         $requestArgs = [
             "TableName" => $this->tableName,
         ];
         
-        if ($this->casField) {
-            $old_cas              = isset($obj[$this->casField]) ? $obj[$this->casField] : null;
-            $casValue             = time();
-            $obj[$this->casField] = $casValue;
+        if ($checkValues) {
+            $conditionExpressions      = [];
+            $expressionAttributeNames  = [];
+            $expressionAttributeValues = [];
             
-            if ($checkAndSet) {
-                if ($old_cas) {
-                    $requestArgs['ConditionExpression']       = "#CAS = :cas_val";
-                    $requestArgs['ExpressionAttributeNames']  = ["#CAS" => $this->casField];
-                    $requestArgs['ExpressionAttributeValues'] = [":cas_val" => ["N" => strval(intval($old_cas))]];
+            $typedCheckValues = DynamoDbItem::createFromArray($checkValues)->getData();
+            $casCounter       = 0;
+            foreach ($typedCheckValues as $field => $checkValue) {
+                $casCounter++;
+                $fieldPlaceholder = "#field$casCounter";
+                $valuePlaceholder = ":val$casCounter";
+                if (isset($checkValue['NULL'])) {
+                    $conditionExpressions[] = "(attribute_not_exists($fieldPlaceholder) OR $fieldPlaceholder = $valuePlaceholder)";
                 }
                 else {
-                    $requestArgs['ConditionExpression']      = "attribute_not_exists(#CAS)";
-                    $requestArgs['ExpressionAttributeNames'] = ["#CAS" => $this->casField];
+                    $conditionExpressions[] = "$fieldPlaceholder = $valuePlaceholder";
                 }
+                $expressionAttributeNames[$fieldPlaceholder]  = $field;
+                $expressionAttributeValues[$valuePlaceholder] = $checkValue;
             }
+            
+            $requestArgs['ConditionExpression']       = implode(" AND ", $conditionExpressions);
+            $requestArgs['ExpressionAttributeNames']  = $expressionAttributeNames;
+            $requestArgs['ExpressionAttributeValues'] = $expressionAttributeValues;
         }
         $item                = DynamoDbItem::createFromArray($obj, $this->attributeTypes);
         $requestArgs['Item'] = $item->getData();
@@ -622,22 +628,6 @@ class DynamoDbTable
                                $consistent_read = false)
     {
         $this->queryAndRun($callback, $conditions, $fields, $params, self::NO_INDEX, $consistent_read);
-    }
-    
-    /**
-     * @return string
-     */
-    public function getCasField()
-    {
-        return $this->casField;
-    }
-    
-    /**
-     * @param string $casField
-     */
-    public function setCasField($casField)
-    {
-        $this->casField = $casField;
     }
     
     /**
