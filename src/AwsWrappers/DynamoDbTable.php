@@ -65,6 +65,91 @@ class DynamoDbTable
         $this->dbClient->updateTable($args);
     }
     
+    public function batchGet(array $keys, $isConsistentRead = false, $keyIsTyped = false, $retryDelay = 0)
+    {
+        $returnSet     = [];
+        $promises      = [];
+        $reads         = [];
+        $unprocessed   = [];
+        $flushCallback = function ($limit = 100) use (
+            &$promises,
+            &$reads,
+            &$unprocessed,
+            $isConsistentRead,
+            &$returnSet
+        ) {
+            if (count($reads) >= $limit) {
+                $reqArgs = [
+                    "RequestItems" => [
+                        $this->tableName => [
+                            "Keys"           => $reads,
+                            "ConsistentRead" => $isConsistentRead,
+                        ],
+                    ],
+                    //"ReturnConsumedCapacity" => "TOTAL",
+                ];
+                $promise = $this->dbClient->batchGetItemAsync($reqArgs);
+                $promise->then(
+                    function (Result $result) use (&$unprocessed, &$returnSet) {
+                        $unprocessedKeys = $result['UnprocessedKeys'];
+                        if (isset($unprocessedKeys[$this->tableName]["Keys"])) {
+                            $currentUnprocessed = $unprocessedKeys[$this->tableName]["Keys"];
+                            mdebug("Unprocessed = %d", count($currentUnprocessed));
+                            foreach ($currentUnprocessed as $action) {
+                                $unprocessed[] = $action;
+                            }
+                        }
+                        if (isset($result['Responses'][$this->tableName])) {
+                            foreach ($result['Responses'][$this->tableName] as $item) {
+                                $item        = DynamoDbItem::createFromTypedArray($item);
+                                $returnSet[] = $item->toArray();
+                            }
+                        }
+                        //mdebug("Consumed = %.1f", $result['ConsumedCapacity'][0]['CapacityUnits']);
+                    },
+                    function ($e) {
+                        merror("Exception got: %s!", get_class($e));
+                        if ($e instanceof DynamoDbException) {
+                            $e->setTransferInfo(['a' => 'b']);
+                            mtrace(
+                                $e,
+                                "Exception while batch updating dynamo db item, aws code = "
+                                . $e->getAwsErrorCode()
+                                . ", type = "
+                                . $e->getAwsErrorType()
+                            );
+                        }
+                        
+                    }
+                );
+                $promises[] = $promise;
+                $reads      = [];
+            }
+        };
+        foreach ($keys as $key) {
+            $keyItem = $keyIsTyped ? DynamoDbItem::createFromTypedArray($key) :
+                DynamoDbItem::createFromArray($key, $this->attributeTypes);
+            $req     = $keyItem->getData();
+            $reads[] = $req;
+            call_user_func($flushCallback);
+        }
+        call_user_func($flushCallback, 1);
+        
+        \GuzzleHttp\Promise\all($promises)->wait();
+        
+        if ($unprocessed) {
+            $retryDelay = $retryDelay ? : 925;
+            usleep($retryDelay * 1000);
+            $returnSet = array_merge(
+                $returnSet,
+                $this->batchGet($unprocessed, $isConsistentRead, true, $retryDelay * 2)
+            );
+        }
+        
+        return $returnSet;
+        
+    }
+    
     public function batchPut(array $objs, $objIsTyped = false)
     {
         $promises    = [];
@@ -110,7 +195,8 @@ class DynamoDbTable
             }
         };
         foreach ($objs as $obj) {
-            $item     = $objIsTyped ? DynamoDbItem::createFromTypedArray($obj) : DynamoDbItem::createFromArray($obj);
+            $item     = $objIsTyped ? DynamoDbItem::createFromTypedArray($obj) :
+                DynamoDbItem::createFromArray($obj, $this->attributeTypes);
             $req      = [
                 "PutRequest" => [
                     "Item" => $item->getData(),

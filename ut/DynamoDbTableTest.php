@@ -99,9 +99,26 @@ class DynamoDbTableTest extends \PHPUnit_Framework_TestCase
             $writes[$obj["id"]] = $obj;
         }
         $this->table->batchPut($writes);
+        $keys = [];
         foreach ($writes as $k => $v) {
-            $this->table->get(["id" => intval($k)]);
+            $key    = ["id" => intval($k)];
+            $keys[] = $key;
+            $this->table->get($key);
         }
+        
+        return $keys;
+    }
+    
+    /**
+     * @depends testBatchPut
+     *
+     * @param $keys
+     */
+    public function testBatchGet($keys)
+    {
+        $result = $this->table->batchGet($keys);
+        $this->assertTrue(is_array($result));
+        $this->assertEquals(10, count($result));
     }
     
     /**

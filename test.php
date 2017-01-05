@@ -33,16 +33,22 @@ $table = new DynamoDbTable($aws, "watch-test-values");
 
 //$client  = $table->getDbClient();
 $ts1     = microtime(true);
-$updates = [];
-for ($i = 0; $i < 30; ++$i) {
+$updates = $keys = [];
+for ($i = 0; $i < 100; ++$i) {
     $updates[] = [
         "appHash"   => "b",
         "timestamp" => $i,
         "age"       => "age = $i",
     ];
+    $keys[]    = [
+        "appHash"   => "b",
+        "timestamp" => $i,
+    ];
 }
-$table->batchPut($updates);
-$ts2 = $ts3 = microtime(true);
-
-mdebug("Time = %0.3f, %0.3f", ($ts2 - $ts1), ($ts3 - $ts2));
+$ts2 = microtime(true);
+//$table->batchPut($updates);
+$ts3    = microtime(true);
+$result = $table->batchGet($keys, true);
+var_dump(count($result));
+mdebug("Time = %0.3f, %0.3f, %0.3f", ($ts2 - $ts1), ($ts3 - $ts2), ($ts3 - $ts1));
 
