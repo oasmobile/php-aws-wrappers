@@ -116,7 +116,7 @@ XML;
             ]
         );
     }
-
+    
     /**
      * @return string
      */
@@ -132,5 +132,6 @@ XML;
     {
         $this->topic_arn = $topic_arn;
     }
+
     
 }

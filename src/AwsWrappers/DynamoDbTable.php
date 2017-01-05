@@ -242,6 +242,28 @@ class DynamoDbTable
         $this->dbClient->updateTable($args);
     }
     
+    public function get(array $keys, $is_consistent_read = false)
+    {
+        $keyItem     = DynamoDbItem::createFromArray($keys, $this->attributeTypes);
+        $requestArgs = [
+            "TableName" => $this->tableName,
+            "Key"       => $keyItem->getData(),
+        ];
+        if ($is_consistent_read) {
+            $requestArgs["ConsistentRead"] = true;
+        }
+        
+        $result = $this->dbClient->getItem($requestArgs);
+        if ($result['Item']) {
+            $item = DynamoDbItem::createFromTypedArray((array)$result['Item']);
+            
+            return $item->toArray();
+        }
+        else {
+            return null;
+        }
+    }
+    
     public function isStreamEnabled(&$streamViewType = null)
     {
         $streamViewType = null;
@@ -347,26 +369,57 @@ class DynamoDbTable
         $this->queryAndRun($callback, $conditions, $fields, $params, self::NO_INDEX, $consistent_read);
     }
     
-    public function get(array $keys, $is_consistent_read = false)
+    public function set(array $obj, $checkValues = [])
     {
-        $keyItem     = DynamoDbItem::createFromArray($keys, $this->attributeTypes);
         $requestArgs = [
             "TableName" => $this->tableName,
-            "Key"       => $keyItem->getData(),
         ];
-        if ($is_consistent_read) {
-            $requestArgs["ConsistentRead"] = true;
+        
+        if ($checkValues) {
+            $conditionExpressions      = [];
+            $expressionAttributeNames  = [];
+            $expressionAttributeValues = [];
+            
+            $typedCheckValues = DynamoDbItem::createFromArray($checkValues)->getData();
+            $casCounter       = 0;
+            foreach ($typedCheckValues as $field => $checkValue) {
+                $casCounter++;
+                $fieldPlaceholder = "#field$casCounter";
+                $valuePlaceholder = ":val$casCounter";
+                if (isset($checkValue['NULL'])) {
+                    $conditionExpressions[] = "(attribute_not_exists($fieldPlaceholder) OR $fieldPlaceholder = $valuePlaceholder)";
+                }
+                else {
+                    $conditionExpressions[] = "$fieldPlaceholder = $valuePlaceholder";
+                }
+                $expressionAttributeNames[$fieldPlaceholder]  = $field;
+                $expressionAttributeValues[$valuePlaceholder] = $checkValue;
+            }
+            
+            $requestArgs['ConditionExpression']       = implode(" AND ", $conditionExpressions);
+            $requestArgs['ExpressionAttributeNames']  = $expressionAttributeNames;
+            $requestArgs['ExpressionAttributeValues'] = $expressionAttributeValues;
+        }
+        $item                = DynamoDbItem::createFromArray($obj, $this->attributeTypes);
+        $requestArgs['Item'] = $item->getData();
+        
+        try {
+            $this->dbClient->putItem($requestArgs);
+        } catch (DynamoDbException $e) {
+            if ($e->getAwsErrorCode() == "ConditionalCheckFailedException") {
+                return false;
+            }
+            mtrace(
+                $e,
+                "Exception while setting dynamo db item, aws code = "
+                . $e->getAwsErrorCode()
+                . ", type = "
+                . $e->getAwsErrorType()
+            );
+            throw $e;
         }
         
-        $result = $this->dbClient->getItem($requestArgs);
-        if ($result['Item']) {
-            $item = DynamoDbItem::createFromTypedArray((array)$result['Item']);
-            
-            return $item->toArray();
-        }
-        else {
-            return null;
-        }
+        return true;
     }
     
     public function getConsumedCapacity($indexName = self::PRIMARY_INDEX,
@@ -610,59 +663,6 @@ class DynamoDbTable
         }
         
         throw new \UnexpectedValueException("Cannot find index named $indexName");
-    }
-    
-    public function set(array $obj, $checkValues = [])
-    {
-        $requestArgs = [
-            "TableName" => $this->tableName,
-        ];
-        
-        if ($checkValues) {
-            $conditionExpressions      = [];
-            $expressionAttributeNames  = [];
-            $expressionAttributeValues = [];
-            
-            $typedCheckValues = DynamoDbItem::createFromArray($checkValues)->getData();
-            $casCounter       = 0;
-            foreach ($typedCheckValues as $field => $checkValue) {
-                $casCounter++;
-                $fieldPlaceholder = "#field$casCounter";
-                $valuePlaceholder = ":val$casCounter";
-                if (isset($checkValue['NULL'])) {
-                    $conditionExpressions[] = "(attribute_not_exists($fieldPlaceholder) OR $fieldPlaceholder = $valuePlaceholder)";
-                }
-                else {
-                    $conditionExpressions[] = "$fieldPlaceholder = $valuePlaceholder";
-                }
-                $expressionAttributeNames[$fieldPlaceholder]  = $field;
-                $expressionAttributeValues[$valuePlaceholder] = $checkValue;
-            }
-            
-            $requestArgs['ConditionExpression']       = implode(" AND ", $conditionExpressions);
-            $requestArgs['ExpressionAttributeNames']  = $expressionAttributeNames;
-            $requestArgs['ExpressionAttributeValues'] = $expressionAttributeValues;
-        }
-        $item                = DynamoDbItem::createFromArray($obj, $this->attributeTypes);
-        $requestArgs['Item'] = $item->getData();
-        
-        try {
-            $this->dbClient->putItem($requestArgs);
-        } catch (DynamoDbException $e) {
-            if ($e->getAwsErrorCode() == "ConditionalCheckFailedException") {
-                return false;
-            }
-            mtrace(
-                $e,
-                "Exception while setting dynamo db item, aws code = "
-                . $e->getAwsErrorCode()
-                . ", type = "
-                . $e->getAwsErrorType()
-            );
-            throw $e;
-        }
-        
-        return true;
     }
     
     public function setAttributeType($name, $type)

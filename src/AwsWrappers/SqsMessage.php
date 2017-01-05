@@ -26,9 +26,9 @@ class SqsMessage
     /**
      * @return mixed
      */
-    public function getMessageId()
+    public function getMd5OfAttributes()
     {
-        return $this->messageId;
+        return $this->md5OfAttributes;
     }
 
     /**
@@ -42,8 +42,8 @@ class SqsMessage
     /**
      * @return mixed
      */
-    public function getMd5OfAttributes()
+    public function getMessageId()
     {
-        return $this->md5OfAttributes;
+        return $this->messageId;
     }
 }
