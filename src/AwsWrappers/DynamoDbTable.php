@@ -90,10 +90,6 @@ class DynamoDbTable
                                 $unprocessed[] = $action['PutRequest']['Item'];
                             }
                         }
-                        
-                        //$consumedCapacity = current($result['ConsumedCapacity']);
-                        //mdebug("Consumed = %d", $consumedCapacity['CapacityUnits']);
-                        //var_dump($consumedCapacity);
                     },
                     function ($e) {
                         merror("Exception got: %s!", get_class($e));
@@ -128,7 +124,6 @@ class DynamoDbTable
         \GuzzleHttp\Promise\all($promises)->wait();
         
         if ($unprocessed) {
-            //var_dump($unprocessed);
             $this->batchPut($unprocessed, true);
         }
     }
@@ -582,6 +577,14 @@ class DynamoDbTable
         );
         
         return $primaryIndex;
+    }
+    
+    /**
+     * @return mixed
+     */
+    public function getTableName()
+    {
+        return $this->tableName;
     }
     
     public function getThroughput($indexName = self::PRIMARY_INDEX)
