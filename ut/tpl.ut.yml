@@ -1,0 +1,6 @@
+aws:
+    region: ap-northeast-1
+    profile: oasis-minhao
+
+dynamodb:
+    table-prefix: aws-wrappers-ut-
