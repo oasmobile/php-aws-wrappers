@@ -92,9 +92,10 @@ class DynamoDbTableTest extends \PHPUnit_Framework_TestCase
         $writes = [];
         for ($i = 0; $i < 10; ++$i) {
             $obj                = [
-                "id"   => 10 + $i,
-                "city" => ($i % 2) ? "beijing" : "shanghai",
-                "code" => 100 + $i,
+                "id"    => 10 + $i,
+                "city"  => ($i % 2) ? "beijing" : "shanghai",
+                "code"  => 100 + $i,
+                "mayor" => (($i % 3) == 0) ? "wang" : ((($i % 3) == 1) ? "ye" : "lee"),
             ];
             $writes[$obj["id"]] = $obj;
         }
@@ -126,12 +127,14 @@ class DynamoDbTableTest extends \PHPUnit_Framework_TestCase
      */
     public function testQuery()
     {
+        // query primary index
         $result = $this->table->query("#id = :id", ["#id" => "id"], [":id" => 13]);
         $this->assertTrue(is_array($result));
         $this->assertTrue(count($result) > 0);
         $obj = current($result);
         $this->assertEquals("beijing", $obj['city']);
         
+        // query GSI
         $result = $this->table->query(
             "#city = :city AND (#code BETWEEN :min AND :max)",
             ["#city" => "city", "#code" => "code"],
@@ -150,5 +153,95 @@ class DynamoDbTableTest extends \PHPUnit_Framework_TestCase
         next($result);
         $this->assertEquals(104, $obj['code']);
     }
+    
+    /**
+     * @depends testBatchPut
+     */
+    public function testQueryWithFilterExpression()
+    {
+        $result = $this->table->query(
+            "#city = :city AND (#code BETWEEN :min AND :max)",
+            ["#city" => "city", "#code" => "code", "#mayor" => "mayor"],
+            [":city" => "shanghai", ":min" => 100, ":max" => 105, ":notAllowed" => "lee"],
+            "city-code-index",
+            "#mayor <> :notAllowed"
+        );
+        $this->assertTrue(is_array($result));
+        $this->assertEquals(2, count($result));
+        $obj = current($result);
+        next($result);
+        $this->assertEquals(100, $obj['code']);
+        $this->assertEquals("wang", $obj['mayor']);
+        $obj = current($result);
+        next($result);
+        $this->assertEquals(104, $obj['code']);
+        $this->assertEquals("ye", $obj['mayor']);
+    }
+    
+    /**
+     * @depends testBatchPut
+     */
+    public function testQueryAndRun()
+    {
+        $result = [];
+        $this->table->queryAndRun(
+            function ($item) use (&$result) {
+                $this->assertTrue(is_array($item));
+                $this->assertArrayHasKey('mayor', $item);
+                $result[] = $item['mayor'];
+            },
+            "#city = :city AND (#code BETWEEN :min AND :max)",
+            ["#city" => "city", "#code" => "code", "#mayor" => "mayor"],
+            [":city" => "shanghai", ":min" => 100, ":max" => 105, ":notAllowed" => "lee"],
+            "city-code-index",
+            "#mayor <> :notAllowed"
+        );
+        $this->assertEquals(["wang", "ye"], $result);
+    }
+    
+    /**
+     * @depends testBatchPut
+     */
+    public function testQueryCount()
+    {
+        $restul = $this->table->queryCount(
+            "#city = :city AND (#code BETWEEN :min AND :max)",
+            ["#city" => "city", "#code" => "code", "#mayor" => "mayor"],
+            [":city" => "shanghai", ":min" => 100, ":max" => 105, ":notAllowed" => "lee"],
+            "city-code-index",
+            "#mayor <> :notAllowed"
+        );
+        $this->assertEquals(2, $restul);
+    }
+    
+    /**
+     * @depends testBatchPut
+     */
+    //public function testScan()
+    //{
+    //    $result = $this->table->oldQuery("#id = :id", ["#id" => "id"], [":id" => 13]);
+    //    $this->assertTrue(is_array($result));
+    //    $this->assertTrue(count($result) > 0);
+    //    $obj = current($result);
+    //    $this->assertEquals("beijing", $obj['city']);
+    //
+    //    $result = $this->table->oldQuery(
+    //        "#city = :city AND (#code BETWEEN :min AND :max)",
+    //        ["#city" => "city", "#code" => "code"],
+    //        [":city" => "shanghai", ":min" => 100, ":max" => 105],
+    //        "city-code-index"
+    //    );
+    //    $this->assertTrue(is_array($result));
+    //    $this->assertEquals(3, count($result));
+    //    $obj = current($result);
+    //    next($result);
+    //    $this->assertEquals(100, $obj['code']);
+    //    $obj = current($result);
+    //    next($result);
+    //    $this->assertEquals(102, $obj['code']);
+    //    $obj = current($result);
+    //    next($result);
+    //    $this->assertEquals(104, $obj['code']);
+    //}
     
 }

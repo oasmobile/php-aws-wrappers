@@ -12,13 +12,11 @@ use Aws\CloudWatch\CloudWatchClient;
 use Aws\DynamoDb\DynamoDbClient;
 use Aws\DynamoDb\Exception\DynamoDbException;
 use Aws\Result;
+use Oasis\Mlib\AwsWrappers\DynamoDb\QueryCommandWrapper;
 use Oasis\Mlib\Utils\ArrayDataProvider;
 
 class DynamoDbTable
 {
-    const PRIMARY_INDEX = false;
-    const NO_INDEX      = null;
-    
     /** @var DynamoDbClient */
     protected $dbClient;
     
@@ -214,56 +212,6 @@ class DynamoDbTable
         }
     }
     
-    public function count($conditions,
-                          array $fields,
-                          array $params,
-                          $index_name = self::NO_INDEX,
-                          $consistent_read = false)
-    {
-        $usingScan   = ($index_name === self::NO_INDEX);
-        $command     = $usingScan ? "scan" : "query";
-        $requestArgs = [
-            "TableName" => $this->tableName,
-            "Select"    => "COUNT",
-        ];
-        if ($conditions) {
-            $conditionKey               = $usingScan ? "FilterExpression" : "KeyConditionExpression";
-            $requestArgs[$conditionKey] = $conditions;
-            
-            if ($fields) {
-                $requestArgs['ExpressionAttributeNames'] = $fields;
-            }
-            if ($params) {
-                $paramsItem                               = DynamoDbItem::createFromArray($params);
-                $requestArgs['ExpressionAttributeValues'] = $paramsItem->getData();
-            }
-        }
-        if (!$usingScan) {
-            $requestArgs['ConsistentRead'] = $consistent_read;
-            if ($index_name !== self::PRIMARY_INDEX) {
-                $requestArgs['IndexName'] = $index_name;
-            }
-        }
-        
-        $count   = 0;
-        $scanned = 0;
-        
-        $last_key = null;
-        do {
-            if ($last_key) {
-                $requestArgs['ExclusiveStartKey'] = $last_key;
-            }
-            $result   = call_user_func([$this->dbClient, $command], $requestArgs);
-            $last_key = isset($result['LastEvaluatedKey']) ? $result['LastEvaluatedKey'] : null;
-            $count += intval($result['Count']);
-            $scanned += intval($result['ScannedCount']);
-        } while ($last_key != null);
-        
-        mdebug("Count = $count from total scanned $scanned");
-        
-        return $count;
-    }
-    
     public function delete($keys)
     {
         $keyItem = DynamoDbItem::createFromArray($keys, $this->attributeTypes);
@@ -365,94 +313,114 @@ class DynamoDbTable
         return $isEnabled;
     }
     
-    public function query($conditions,
-                          array $fields,
-                          array $params,
-                          $index_name = self::PRIMARY_INDEX,
-                          &$last_key = null,
-                          $page_limit = 30,
-                          $consistent_read = false)
+    public function queryCount($keyConditions,
+                               array $fieldsMapping,
+                               array $paramsMapping,
+                               $indexName = DynamoDbIndex::PRIMARY_INDEX,
+                               $filterExpression = '',
+                               $isConsistentRead = false,
+                               $isAscendingOrder = true
+    )
     {
-        $usingScan   = ($index_name === self::NO_INDEX);
-        $command     = $usingScan ? "scan" : "query";
-        $requestArgs = [
-            "TableName"      => $this->tableName,
-            'ConsistentRead' => $consistent_read,
-        ];
-        if ($conditions) {
-            $conditionKey               = $usingScan ? "FilterExpression" : "KeyConditionExpression";
-            $requestArgs[$conditionKey] = $conditions;
-            
-            if ($fields) {
-                $requestArgs['ExpressionAttributeNames'] = $fields;
-            }
-            if ($params) {
-                $paramsItem                               = DynamoDbItem::createFromArray($params);
-                $requestArgs['ExpressionAttributeValues'] = $paramsItem->getData();
-            }
-        }
-        if (!$usingScan) {
-            if ($index_name !== self::PRIMARY_INDEX) {
-                $requestArgs['IndexName'] = $index_name;
-            }
-        }
-        if ($last_key) {
-            $requestArgs['ExclusiveStartKey'] = $last_key;
-        }
-        if ($page_limit) {
-            $requestArgs['Limit'] = $page_limit;
-        }
+        $ret     = 0;
+        $lastKey = null;
+        $wrapper = new QueryCommandWrapper();
+        do {
+            $ret += $wrapper(
+                $this->dbClient,
+                $this->tableName,
+                function () {
+                },
+                $keyConditions,
+                $fieldsMapping,
+                $paramsMapping,
+                $indexName,
+                $filterExpression,
+                $lastKey,
+                30,
+                $isConsistentRead,
+                $isAscendingOrder,
+                true
+            );
+        } while ($lastKey != null);
         
-        $result   = call_user_func([$this->dbClient, $command], $requestArgs);
-        $last_key = isset($result['LastEvaluatedKey']) ? $result['LastEvaluatedKey'] : null;
-        $items    = isset($result['Items']) ? $result['Items'] : [];
+        return $ret;
+    }
+    
+    public function query($keyConditions,
+                          array $fieldsMapping,
+                          array $paramsMapping,
+                          $indexName = DynamoDbIndex::PRIMARY_INDEX,
+                          $filterExpression = '',
+                          &$lastKey = null,
+                          $evaluationLimit = 30,
+                          $isConsistentRead = false,
+                          $isAscendingOrder = true
+    )
+    {
+        $wrapper = new QueryCommandWrapper();
         
         $ret = [];
-        foreach ($items as $itemArray) {
-            $item  = DynamoDbItem::createFromTypedArray($itemArray);
-            $ret[] = $item->toArray();
-        }
+        $wrapper(
+            $this->dbClient,
+            $this->tableName,
+            function ($item) use (&$ret) {
+                $ret[] = $item;
+            },
+            $keyConditions,
+            $fieldsMapping,
+            $paramsMapping,
+            $indexName,
+            $filterExpression,
+            $lastKey,
+            $evaluationLimit,
+            $isConsistentRead,
+            $isAscendingOrder,
+            false
+        );
         
         return $ret;
     }
     
     public function queryAndRun(callable $callback,
-                                $conditions,
-                                array $fields,
-                                array $params,
-                                $index_name = self::PRIMARY_INDEX,
-                                $consistent_read = false)
+                                $keyConditions,
+                                array $fieldsMapping,
+                                array $paramsMapping,
+                                $indexName = DynamoDbIndex::PRIMARY_INDEX,
+                                $filterExpression = '',
+                                $isConsistentRead = false,
+                                $isAscendingOrder = true)
     {
-        $last_key          = null;
+        $lastKey           = null;
         $stoppedByCallback = false;
+        $wrapper           = new QueryCommandWrapper();
+        
         do {
-            $items = $this->query($conditions, $fields, $params, $index_name, $last_key, 30, $consistent_read);
-            foreach ($items as $item) {
-                if (call_user_func($callback, $item) === false) {
-                    $stoppedByCallback = true;
-                    break;
-                }
-            }
-        } while ($last_key != null && !$stoppedByCallback);
-    }
-    
-    public function scan($conditions = '',
-                         array $fields = [],
-                         array $params = [],
-                         &$last_key = null,
-                         $page_limit = 30,
-                         $consistent_read = false)
-    {
-        return $this->query($conditions, $fields, $params, self::NO_INDEX, $last_key, $page_limit, $consistent_read);
-    }
-    
-    public function scanAndRun(callable $callback,
-                               $conditions = '',
-                               array $fields = [],
-                               array $params = [],
-                               $consistent_read = false)
-    {
-        $this->queryAndRun($callback, $conditions, $fields, $params, self::NO_INDEX, $consistent_read);
+            $wrapper(
+                $this->dbClient,
+                $this->tableName,
+                function ($item) use (&$stoppedByCallback, $callback) {
+                    if ($stoppedByCallback) {
+                        return;
+                    }
+                    
+                    $ret = call_user_func($callback, $item);
+                    if ($ret === false) {
+                        $stoppedByCallback = true;
+                    }
+                },
+                $keyConditions,
+                $fieldsMapping,
+                $paramsMapping,
+                $indexName,
+                $filterExpression,
+                $lastKey,
+                30,
+                $isConsistentRead,
+                $isAscendingOrder,
+                false
+            );
+        } while ($lastKey != null && !$stoppedByCallback);
     }
     
     public function set(array $obj, $checkValues = [])
@@ -508,7 +476,7 @@ class DynamoDbTable
         return true;
     }
     
-    public function getConsumedCapacity($indexName = self::PRIMARY_INDEX,
+    public function getConsumedCapacity($indexName = DynamoDbIndex::PRIMARY_INDEX,
                                         $period = 60,
                                         $num_of_period = 5,
                                         $timeshift = -300)
@@ -543,7 +511,7 @@ class DynamoDbTable
             "Period"     => 60,
             "Statistics" => ["Sum"],
         ];
-        if ($indexName != self::PRIMARY_INDEX) {
+        if ($indexName != DynamoDbIndex::PRIMARY_INDEX) {
             $requestArgs['Dimensions'][] = [
                 "Name"  => "GlobalSecondaryIndexName",
                 "Value" => $indexName,
@@ -726,10 +694,10 @@ class DynamoDbTable
         return $this->tableName;
     }
     
-    public function getThroughput($indexName = self::PRIMARY_INDEX)
+    public function getThroughput($indexName = DynamoDbIndex::PRIMARY_INDEX)
     {
         $result = $this->describe();
-        if ($indexName == self::PRIMARY_INDEX) {
+        if ($indexName == DynamoDbIndex::PRIMARY_INDEX) {
             return [
                 $result['Table']['ProvisionedThroughput']['ReadCapacityUnits'],
                 $result['Table']['ProvisionedThroughput']['WriteCapacityUnits'],
@@ -758,7 +726,7 @@ class DynamoDbTable
         return $this;
     }
     
-    public function setThroughput($read, $write, $indexName = self::PRIMARY_INDEX)
+    public function setThroughput($read, $write, $indexName = DynamoDbIndex::PRIMARY_INDEX)
     {
         $requestArgs  = [
             "TableName" => $this->tableName,
@@ -767,7 +735,7 @@ class DynamoDbTable
             'ReadCapacityUnits'  => $read,
             'WriteCapacityUnits' => $write,
         ];
-        if ($indexName == self::PRIMARY_INDEX) {
+        if ($indexName == DynamoDbIndex::PRIMARY_INDEX) {
             $requestArgs['ProvisionedThroughput'] = $updateObject;
         }
         else {

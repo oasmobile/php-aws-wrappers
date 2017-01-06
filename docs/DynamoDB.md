@@ -102,7 +102,7 @@ The _query_ operation will make use of the indices of your table, be it the prim
 <?php
 
 // querying the primary index "id"
-$items = $table->query(
+$items = $table->oldQuery(
     "#id > :minValue AND #id < :maxValue",
     ["#id" => "id"],
     [":minValue" => 5, ":maxValue" => 20],
@@ -110,7 +110,7 @@ $items = $table->query(
 );
 
 // querying the GSI ("hometown", "age"), named "gsi_hometown_and_age"
-$items = $table->query(
+$items = $table->oldQuery(
     "#hometown = :city AND #age > :minAge",
     ["#hometown" => "hometown", "#age" => "age"],
     [":city" => "Beijing", ":minValue" => 20],
@@ -124,7 +124,7 @@ $items = $table->query(
 
 The above example will try to evaluate as many items as possible, and return those matching the condition expression. However, this number is restricted to a limit, which defaults to 30. This limit can be increased as needed, but DynamoDB will stop whenever the total size of processed data set exceeds the amount of 1MB.
 
-In case you need to continue querying the data after a limit is hit, you can use the _last evaluated key_ concept. `DynamoDbTable` will return the _last evaluated key_ (internal key of item) by reference when each `query()` call finishes. This key can be passed into the `query()` call again to determine an _exclusive start key_ (where to start evaluating, exclusively) for the next query. By continuosly calling `query()` with an increasing _exclusive start key_, you can eventually go through all the items in a table.
+In case you need to continue querying the data after a limit is hit, you can use the _last evaluated key_ concept. `DynamoDbTable` will return the _last evaluated key_ (internal key of item) by reference when each `oldQuery()` call finishes. This key can be passed into the `oldQuery()` call again to determine an _exclusive start key_ (where to start evaluating, exclusively) for the next oldQuery. By continuosly calling `oldQuery()` with an increasing _exclusive start key_, you can eventually go through all the items in a table.
 
 The code below demonstrates how to use the last key concept in combination with a customized page limit to read all items matching given criteria from a table:
 
@@ -134,7 +134,7 @@ The code below demonstrates how to use the last key concept in combination with 
 $result  = [];
 $lastKey = null;
 do {
-    $items = $table->query(
+    $items = $table->oldQuery(
         "#hometown = :city AND #age > :minAge",
         ["#hometown" => "hometown", "#age" => "age"],
         [":city" => "Beijing", ":minValue" => 20],
@@ -153,7 +153,7 @@ do {
 
 In practice, there are scenarios that you either can not determine an index beforehand, or your search condition uses more fields than an index could hold. The  _scan_ operation is designed for this purpose.
 
-Calling the `scan()` method on a `DynamoDbTable` is almost identical to how you call the `query()` method, except that you do not need to give an index name:
+Calling the `scan()` method on a `DynamoDbTable` is almost identical to how you call the `oldQuery()` method, except that you do not need to give an index name:
 
 ```php
 <?php
@@ -186,13 +186,13 @@ do {
 
 ### Iterating Items
 
-You query/scan for items because you would like to perform operations on the items. There is not much need to retain a result set in many use cases. In addition, by discarding the result set which can be huge on large tables, you can save significant amount of memory consumption as well.
+You oldQuery/scan for items because you would like to perform operations on the items. There is not much need to retain a result set in many use cases. In addition, by discarding the result set which can be huge on large tables, you can save significant amount of memory consumption as well.
 
 To support this need, `DynamoDbTable` provides two iteration methods for _query_ and _scan_ operations:
 
 ```php
 <?php
-// query and run
+// oldQuery and run
 $table->queryAndRun(
     function ($item) {
         // process the $item array
@@ -223,12 +223,12 @@ Below is a quote from AWS FAQ:
 > <br />
 > Amazon DynamoDB stores three geographically distributed replicas of each table to enable high availability and data durability. Read consistency represents the manner and timing in which the successful write or update of a data item is reflected in a subsequent read operation of that same item. Amazon DynamoDB exposes logic that enables you to specify the consistency characteristics you desire for each read request within your application.
 
-When you want to read data that need to be strongly consistent, there is an additional parameter to `get()`, `query()`, `scan()`, `queryAndRun()` and `scanAndRun()` methods, that specifies whether this read is _consistent_ or not. The default value for this parameter is `false`.
+When you want to read data that need to be strongly consistent, there is an additional parameter to `get()`, `oldQuery()`, `scan()`, `queryAndRun()` and `scanAndRun()` methods, that specifies whether this read is _consistent_ or not. The default value for this parameter is `false`.
 
 ```php
 <?php
 $item  = $table->get(['id' => 10], true); // consistent read
-$items = $table->query(
+$items = $table->oldQuery(
     "#hometown = :city AND #age > :minAge",
     ["#hometown" => "hometown", "#age" => "age"],
     [":city" => "Beijing", ":minValue" => 20],

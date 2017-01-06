@@ -10,6 +10,8 @@ namespace Oasis\Mlib\AwsWrappers;
 
 class DynamoDbIndex
 {
+    const PRIMARY_INDEX = true;
+    
     const PROJECTION_TYPE_ALL       = "ALL";
     const PROJECTION_TYPE_INCLUDE   = "INCLUDE";
     const PROJECTION_TYPE_KEYS_ONLY = "KEYS_ONLY";
