@@ -15,7 +15,7 @@ use Oasis\Mlib\AwsWrappers\DynamoDbTable;
 
 class DynamoDbTableTest extends \PHPUnit_Framework_TestCase
 {
-    const DEBUG = 1;
+    const DEBUG = 0;
     protected static $tableName;
     
     /** @var  DynamoDbTable */
@@ -133,7 +133,7 @@ class DynamoDbTableTest extends \PHPUnit_Framework_TestCase
         $this->assertTrue(count($result) > 0);
         $obj = current($result);
         $this->assertEquals("beijing", $obj['city']);
-        
+    
         // query GSI
         $result = $this->table->query(
             "#city = :city AND (#code BETWEEN :min AND :max)",
@@ -217,31 +217,73 @@ class DynamoDbTableTest extends \PHPUnit_Framework_TestCase
     /**
      * @depends testBatchPut
      */
-    //public function testScan()
-    //{
-    //    $result = $this->table->oldQuery("#id = :id", ["#id" => "id"], [":id" => 13]);
-    //    $this->assertTrue(is_array($result));
-    //    $this->assertTrue(count($result) > 0);
-    //    $obj = current($result);
-    //    $this->assertEquals("beijing", $obj['city']);
-    //
-    //    $result = $this->table->oldQuery(
-    //        "#city = :city AND (#code BETWEEN :min AND :max)",
-    //        ["#city" => "city", "#code" => "code"],
-    //        [":city" => "shanghai", ":min" => 100, ":max" => 105],
-    //        "city-code-index"
-    //    );
-    //    $this->assertTrue(is_array($result));
-    //    $this->assertEquals(3, count($result));
-    //    $obj = current($result);
-    //    next($result);
-    //    $this->assertEquals(100, $obj['code']);
-    //    $obj = current($result);
-    //    next($result);
-    //    $this->assertEquals(102, $obj['code']);
-    //    $obj = current($result);
-    //    next($result);
-    //    $this->assertEquals(104, $obj['code']);
-    //}
+    public function testScan()
+    {
+        $result = $this->table->scan(
+            "#city = :city AND #code > :min",
+            ["#city" => "city", "#code" => "code"],
+            [":city" => "shanghai", ":min" => 103]
+        );
+        $this->assertEquals(3, count($result));
+    }
+    
+    /**
+     * @depends testBatchPut
+     */
+    public function testScanCount()
+    {
+        $result = $this->table->scanCount(
+            "#city = :city AND #code > :min",
+            ["#city" => "city", "#code" => "code"],
+            [":city" => "shanghai", ":min" => 103]
+        );
+        $this->assertEquals(3, $result);
+    }
+    
+    /**
+     * @depends testBatchPut
+     */
+    public function testScanAndRun()
+    {
+        $expectedMayors = [
+            "ye",
+            "lee",
+            "wang",
+        ];
+        $this->table->scanAndRun(
+            function ($item) use (&$expectedMayors) {
+                $expectedMayor = array_shift($expectedMayors);
+                $this->assertEquals($expectedMayor, $item['mayor']);
+            },
+            "#city = :city AND #code > :min",
+            ["#city" => "city", "#code" => "code"],
+            [":city" => "shanghai", ":min" => 103]
+        );
+    }
+    
+    /**
+     * @depends testBatchPut
+     */
+    public function testParallelScanAndRun()
+    {
+        $expectedMayors = [
+            "wangy",
+            "lee",
+            "ye",
+            "wang",
+            "lee",
+        ];
+        $this->table->parallelScanAndRun(
+            3,
+            function ($item) use (&$expectedMayors) {
+                $expectedMayor = array_shift($expectedMayors);
+                $this->assertEquals($expectedMayor, $item['mayor']);
+            },
+            "#city = :city AND (#code BETWEEN :min AND :max)",
+            ["#city" => "city", "#code" => "code"],
+            [":city" => "shanghai", ":min" => 100, ":max" => 108],
+            "city-code-index"
+        );
+    }
     
 }

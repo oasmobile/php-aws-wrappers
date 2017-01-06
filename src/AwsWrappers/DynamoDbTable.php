@@ -12,7 +12,9 @@ use Aws\CloudWatch\CloudWatchClient;
 use Aws\DynamoDb\DynamoDbClient;
 use Aws\DynamoDb\Exception\DynamoDbException;
 use Aws\Result;
+use Oasis\Mlib\AwsWrappers\DynamoDb\ParallelScanCommandWrapper;
 use Oasis\Mlib\AwsWrappers\DynamoDb\QueryCommandWrapper;
+use Oasis\Mlib\AwsWrappers\DynamoDb\ScanCommandWrapper;
 use Oasis\Mlib\Utils\ArrayDataProvider;
 
 class DynamoDbTable
@@ -313,40 +315,6 @@ class DynamoDbTable
         return $isEnabled;
     }
     
-    public function queryCount($keyConditions,
-                               array $fieldsMapping,
-                               array $paramsMapping,
-                               $indexName = DynamoDbIndex::PRIMARY_INDEX,
-                               $filterExpression = '',
-                               $isConsistentRead = false,
-                               $isAscendingOrder = true
-    )
-    {
-        $ret     = 0;
-        $lastKey = null;
-        $wrapper = new QueryCommandWrapper();
-        do {
-            $ret += $wrapper(
-                $this->dbClient,
-                $this->tableName,
-                function () {
-                },
-                $keyConditions,
-                $fieldsMapping,
-                $paramsMapping,
-                $indexName,
-                $filterExpression,
-                $lastKey,
-                30,
-                $isConsistentRead,
-                $isAscendingOrder,
-                true
-            );
-        } while ($lastKey != null);
-        
-        return $ret;
-    }
-    
     public function query($keyConditions,
                           array $fieldsMapping,
                           array $paramsMapping,
@@ -421,6 +389,167 @@ class DynamoDbTable
                 false
             );
         } while ($lastKey != null && !$stoppedByCallback);
+    }
+    
+    public function queryCount($keyConditions,
+                               array $fieldsMapping,
+                               array $paramsMapping,
+                               $indexName = DynamoDbIndex::PRIMARY_INDEX,
+                               $filterExpression = '',
+                               $isConsistentRead = false,
+                               $isAscendingOrder = true
+    )
+    {
+        $ret     = 0;
+        $lastKey = null;
+        $wrapper = new QueryCommandWrapper();
+        do {
+            $ret += $wrapper(
+                $this->dbClient,
+                $this->tableName,
+                function () {
+                },
+                $keyConditions,
+                $fieldsMapping,
+                $paramsMapping,
+                $indexName,
+                $filterExpression,
+                $lastKey,
+                30,
+                $isConsistentRead,
+                $isAscendingOrder,
+                true
+            );
+        } while ($lastKey != null);
+        
+        return $ret;
+    }
+    
+    public function scan($filterExpression = '',
+                         array $fieldsMapping = [],
+                         array $paramsMapping = [],
+                         $indexName = DynamoDbIndex::PRIMARY_INDEX,
+                         &$lastKey = null,
+                         $evaluationLimit = 30,
+                         $isConsistentRead = false,
+                         $isAscendingOrder = true
+    )
+    {
+        $wrapper = new ScanCommandWrapper();
+        
+        $ret = [];
+        $wrapper(
+            $this->dbClient,
+            $this->tableName,
+            function ($item) use (&$ret) {
+                $ret[] = $item;
+            },
+            $filterExpression,
+            $fieldsMapping,
+            $paramsMapping,
+            $indexName,
+            $lastKey,
+            $evaluationLimit,
+            $isConsistentRead,
+            $isAscendingOrder,
+            false
+        );
+        
+        return $ret;
+    }
+    
+    public function scanAndRun(callable $callback,
+                               $filterExpression = '',
+                               array $fieldsMapping = [],
+                               array $paramsMapping = [],
+                               $indexName = DynamoDbIndex::PRIMARY_INDEX,
+                               $isConsistentRead = false,
+                               $isAscendingOrder = true)
+    {
+        $lastKey           = null;
+        $stoppedByCallback = false;
+        $wrapper           = new ScanCommandWrapper();
+        
+        do {
+            $wrapper(
+                $this->dbClient,
+                $this->tableName,
+                function ($item) use (&$stoppedByCallback, $callback) {
+                    if ($stoppedByCallback) {
+                        return;
+                    }
+                    
+                    $ret = call_user_func($callback, $item);
+                    if ($ret === false) {
+                        $stoppedByCallback = true;
+                    }
+                },
+                $filterExpression,
+                $fieldsMapping,
+                $paramsMapping,
+                $indexName,
+                $lastKey,
+                30,
+                $isConsistentRead,
+                $isAscendingOrder,
+                false
+            );
+        } while ($lastKey != null && !$stoppedByCallback);
+    }
+    
+    public function parallelScanAndRun($parallel,
+                                       callable $callback,
+                                       $filterExpression = '',
+                                       array $fieldsMapping = [],
+                                       array $paramsMapping = [],
+                                       $indexName = DynamoDbIndex::PRIMARY_INDEX,
+                                       $isConsistentRead = false,
+                                       $isAscendingOrder = true)
+    {
+        $wrapper = new ParallelScanCommandWrapper();
+        
+        $wrapper(
+            $this->dbClient,
+            $this->tableName,
+            $callback,
+            $filterExpression,
+            $fieldsMapping,
+            $paramsMapping,
+            $indexName,
+            30,
+            $isConsistentRead,
+            $isAscendingOrder,
+            $parallel,
+            false
+        );
+    }
+    
+    public function scanCount($filterExpression = '',
+                              array $fieldsMapping = [],
+                              array $paramsMapping = [],
+                              $indexName = DynamoDbIndex::PRIMARY_INDEX,
+                              $isConsistentRead = false,
+                              $parallel = 10
+    )
+    {
+        $lastKey = null;
+        $wrapper = new ParallelScanCommandWrapper();
+        
+        return $wrapper(
+            $this->dbClient,
+            $this->tableName,
+            function () {
+            },
+            $filterExpression,
+            $fieldsMapping,
+            $paramsMapping,
+            $indexName,
+            30,
+            $isConsistentRead,
+            true,
+            $parallel,
+            true
+        );
     }
     
     public function set(array $obj, $checkValues = [])
