@@ -50,15 +50,7 @@ class DynamoDbTableTest extends \PHPUnit_Framework_TestCase
                     ),
                 ]
             );
-            $table = new DynamoDbTable(UTConfig::$awsConfig, self::$tableName);
-            while ($info = $table->describe()) {
-                if ($info['TableStatus'] != 'ACTIVE') {
-                    sleep(1);
-                }
-                else {
-                    break;
-                }
-            }
+            $manager->waitForTableCreation(self::$tableName);
         }
     }
     
@@ -67,6 +59,7 @@ class DynamoDbTableTest extends \PHPUnit_Framework_TestCase
         if (!self::DEBUG) {
             $manager = new DynamoDbManager(UTConfig::$awsConfig);
             $manager->deleteTable(self::$tableName);
+            $manager->waitForTableDeletion(self::$tableName);
         }
         
         parent::tearDownAfterClass();
@@ -133,7 +126,7 @@ class DynamoDbTableTest extends \PHPUnit_Framework_TestCase
         $this->assertTrue(count($result) > 0);
         $obj = current($result);
         $this->assertEquals("beijing", $obj['city']);
-    
+        
         // query GSI
         $result = $this->table->query(
             "#city = :city AND (#code BETWEEN :min AND :max)",

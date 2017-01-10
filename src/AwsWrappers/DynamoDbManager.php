@@ -148,10 +148,10 @@ class DynamoDbManager
         }
     }
     
-    public function deleteTable($tablename)
+    public function deleteTable($tableName)
     {
         $args   = [
-            'TableName' => $tablename,
+            'TableName' => $tableName,
         ];
         $result = $this->db->deleteTable($args);
         
@@ -159,6 +159,46 @@ class DynamoDbManager
             return true;
         }
         else {
+            return false;
+        }
+    }
+    
+    public function waitForTableCreation($tableName, $timeout = 60, $interval = 1)
+    {
+        $args = [
+            'TableName' => $tableName,
+            '@waiter'   => [
+                'delay'       => $interval,
+                'maxAttempts' => ceil($timeout / $interval),
+            ],
+        ];
+        try {
+            $this->db->waitUntil('TableExists', $args);
+            
+            return true;
+        } catch (\RuntimeException $e) {
+            mtrace($e, "Exception while waiting for table creation.");
+            
+            return false;
+        }
+    }
+    
+    public function waitForTableDeletion($tableName, $timeout = 60, $interval = 1)
+    {
+        $args = [
+            'TableName' => $tableName,
+            '@waiter'   => [
+                'delay'       => $interval,
+                'maxAttempts' => ceil($timeout / $interval),
+            ],
+        ];
+        try {
+            $this->db->waitUntil('TableNotExists', $args);
+            
+            return true;
+        } catch (\RuntimeException $e) {
+            mtrace($e, "Exception while waiting for table deletion.");
+            
             return false;
         }
     }
