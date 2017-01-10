@@ -415,7 +415,7 @@ class DynamoDbTable
                 $indexName,
                 $filterExpression,
                 $lastKey,
-                30,
+                10000, // max size of a query is 1MB of data, a limit of 10k for items with a typical size of 100B
                 $isConsistentRead,
                 $isAscendingOrder,
                 true
@@ -544,7 +544,7 @@ class DynamoDbTable
             $fieldsMapping,
             $paramsMapping,
             $indexName,
-            30,
+            10000, // max size of a query is 1MB of data, a limit of 10k for items with a typical size of 100B
             $isConsistentRead,
             true,
             $parallel,
