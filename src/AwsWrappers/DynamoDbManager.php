@@ -163,43 +163,42 @@ class DynamoDbManager
         }
     }
     
-    public function waitForTableCreation($tableName, $timeout = 60, $interval = 1)
+    public function waitForTableCreation($tableName, $timeout = 60, $pollInterval = 1, $blocking = true)
     {
         $args = [
             'TableName' => $tableName,
             '@waiter'   => [
-                'delay'       => $interval,
-                'maxAttempts' => ceil($timeout / $interval),
+                'delay'       => $pollInterval,
+                'maxAttempts' => ceil($timeout / $pollInterval),
             ],
         ];
-        try {
-            $this->db->waitUntil('TableExists', $args);
-            
-            return true;
-        } catch (\RuntimeException $e) {
-            mtrace($e, "Exception while waiting for table creation.");
-            
-            return false;
+        
+        $promise = $this->db->getWaiter('TableExists', $args)->promise();
+        
+        if ($blocking) {
+            $promise->wait();
+        }
+        else {
+            return $promise;
         }
     }
-    
-    public function waitForTableDeletion($tableName, $timeout = 60, $interval = 1)
+    public function waitForTableDeletion($tableName, $timeout = 60, $pollInterval = 1, $blocking = true)
     {
         $args = [
             'TableName' => $tableName,
             '@waiter'   => [
-                'delay'       => $interval,
-                'maxAttempts' => ceil($timeout / $interval),
+                'delay'       => $pollInterval,
+                'maxAttempts' => ceil($timeout / $pollInterval),
             ],
         ];
-        try {
-            $this->db->waitUntil('TableNotExists', $args);
-            
-            return true;
-        } catch (\RuntimeException $e) {
-            mtrace($e, "Exception while waiting for table deletion.");
-            
-            return false;
+        
+        $promise = $this->db->getWaiter('TableNotExists', $args)->promise();
+        
+        if ($blocking) {
+            $promise->wait();
+        }
+        else {
+            return $promise;
         }
     }
 }

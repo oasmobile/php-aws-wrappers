@@ -50,7 +50,8 @@ class DynamoDbTableTest extends \PHPUnit_Framework_TestCase
                     ),
                 ]
             );
-            $manager->waitForTableCreation(self::$tableName);
+            $promise = $manager->waitForTableCreation(self::$tableName, 60, 1, false);
+            \GuzzleHttp\Promise\all([$promise])->wait();
         }
     }
     
