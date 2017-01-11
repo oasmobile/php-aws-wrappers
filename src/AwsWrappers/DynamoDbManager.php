@@ -9,6 +9,7 @@
 namespace Oasis\Mlib\AwsWrappers;
 
 use Aws\DynamoDb\DynamoDbClient;
+use Aws\Result;
 use Oasis\Mlib\Utils\ArrayDataProvider;
 
 class DynamoDbManager
@@ -177,11 +178,14 @@ class DynamoDbManager
         
         if ($blocking) {
             $promise->wait();
+            
+            return true;
         }
         else {
             return $promise;
         }
     }
+    
     public function waitForTableDeletion($tableName, $timeout = 60, $pollInterval = 1, $blocking = true)
     {
         $args = [
@@ -196,9 +200,65 @@ class DynamoDbManager
         
         if ($blocking) {
             $promise->wait();
+            
+            return true;
         }
         else {
             return $promise;
         }
+    }
+    
+    public function waitForTablesToBeFullyReady($tableNames, $timeout = 60, $interval = 2)
+    {
+        $started = time();
+        if (is_string($tableNames)) {
+            $tableNames = [$tableNames];
+        }
+        while ($tableNames) {
+            $promises = [];
+            foreach ($tableNames as $tableName) {
+                $args    = [
+                    "TableName" => $tableName,
+                ];
+                $promise = $this->db->describeTableAsync($args);
+                $promise->then(
+                    function (Result $result) use (&$tableNames, $tableName) {
+                        if ($result['Table']['TableStatus'] == "ACTIVE") {
+                            if (isset($result['Table']['GlobalSecondaryIndexes'])
+                                && $result['Table']['GlobalSecondaryIndexes']
+                            ) {
+                                foreach ($result['Table']['GlobalSecondaryIndexes'] as $gsi) {
+                                    if ($gsi['IndexStatus'] != "ACTIVE") {
+                                        mdebug("gsi %s not ready, status = %s", $gsi['IndexName'], $gsi['IndexStatus']);
+                                        
+                                        return;
+                                    }
+                                }
+                            }
+                            
+                            $k = array_search($tableName, $tableNames);
+                            array_splice($tableNames, $k, 1);
+                            var_dump($tableNames);
+                        }
+                        else {
+                            mdebug("Table %s not ready, status = %s", $tableName, $result['Table']['TableStatus']);
+                        }
+                    }
+                );
+                $promises[] = $promise;
+            }
+            
+            \GuzzleHttp\Promise\all($promises)->wait();
+            if ($tableNames) {
+                if (time() - $started > $timeout) {
+                    mwarning("Timed out, some tables are still in unready state: %s", implode(",", $tableNames));
+                    
+                    return false;
+                }
+                sleep($interval);
+            }
+        }
+        
+        return true;
     }
 }
