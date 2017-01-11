@@ -9,7 +9,6 @@
 namespace Oasis\Mlib\AwsWrappers\DynamoDb;
 
 use Aws\DynamoDb\DynamoDbClient;
-use Oasis\Mlib\AwsWrappers\DynamoDbIndex;
 use Oasis\Mlib\AwsWrappers\DynamoDbItem;
 
 class QueryCommandWrapper
@@ -45,39 +44,23 @@ class QueryCommandWrapper
                       $isAscendingOrder,
                       $countOnly)
     {
-        $requestArgs = [
-            "TableName"        => $tableName,
-            "ConsistentRead"   => $isConsistentRead,
-            "ScanIndexForward" => $isAscendingOrder,
-        ];
-        if ($countOnly) {
-            $requestArgs['SELECT'] = "COUNT";
-        }
-        if ($keyConditions) {
-            $requestArgs['KeyConditionExpression'] = $keyConditions;
-        }
-        if ($filterExpression) {
-            $requestArgs['FilterExpression'] = $filterExpression;
-        }
-        if ($keyConditions || $filterExpression) {
-            if ($fieldsMapping) {
-                $requestArgs['ExpressionAttributeNames'] = $fieldsMapping;
-            }
-            if ($paramsMapping) {
-                $paramsItem                               = DynamoDbItem::createFromArray($paramsMapping);
-                $requestArgs['ExpressionAttributeValues'] = $paramsItem->getData();
-            }
-        }
-        if ($indexName !== DynamoDbIndex::PRIMARY_INDEX) {
-            $requestArgs['IndexName'] = $indexName;
-        }
-        if ($lastKey) {
-            $requestArgs['ExclusiveStartKey'] = $lastKey;
-        }
-        if ($evaluationLimit) {
-            $requestArgs['Limit'] = $evaluationLimit;
-        }
-        $result  = $dbClient->query($requestArgs);
+        $asyncWrapper = new QueryAsyncCommandWrapper();
+        
+        $promise = $asyncWrapper(
+            $dbClient,
+            $tableName,
+            $keyConditions,
+            $fieldsMapping,
+            $paramsMapping,
+            $indexName,
+            $filterExpression,
+            $lastKey,
+            $evaluationLimit,
+            $isConsistentRead,
+            $isAscendingOrder,
+            $countOnly
+        );
+        $result  = $promise->wait();
         $lastKey = isset($result['LastEvaluatedKey']) ? $result['LastEvaluatedKey'] : null;
         
         if ($countOnly) {

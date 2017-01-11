@@ -12,6 +12,7 @@ use Aws\CloudWatch\CloudWatchClient;
 use Aws\DynamoDb\DynamoDbClient;
 use Aws\DynamoDb\Exception\DynamoDbException;
 use Aws\Result;
+use Oasis\Mlib\AwsWrappers\DynamoDb\MultiQueryCommandWrapper;
 use Oasis\Mlib\AwsWrappers\DynamoDb\ParallelScanCommandWrapper;
 use Oasis\Mlib\AwsWrappers\DynamoDb\QueryCommandWrapper;
 use Oasis\Mlib\AwsWrappers\DynamoDb\ScanCommandWrapper;
@@ -313,6 +314,37 @@ class DynamoDbTable
         $streamViewType = $description['StreamSpecification']['StreamViewType'];
         
         return $isEnabled;
+    }
+    
+    public function multiQueryAndRun(callable $callback,
+                                     $hashKeyName,
+                                     $hashKeyValues,
+                                     $rangeKeyConditions,
+                                     array $fieldsMapping,
+                                     array $paramsMapping,
+                                     $indexName = DynamoDbIndex::PRIMARY_INDEX,
+                                     $filterExpression = '',
+                                     $evaluationLimit = 30,
+                                     $isConsistentRead = false,
+                                     $isAscendingOrder = true
+    )
+    {
+        $wrapper = new MultiQueryCommandWrapper();
+        $wrapper(
+            $this->dbClient,
+            $this->tableName,
+            $callback,
+            $hashKeyName,
+            $hashKeyValues,
+            $rangeKeyConditions,
+            $fieldsMapping,
+            $paramsMapping,
+            $indexName,
+            $filterExpression,
+            $evaluationLimit,
+            $isConsistentRead,
+            $isAscendingOrder
+        );
     }
     
     public function query($keyConditions,

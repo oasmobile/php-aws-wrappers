@@ -196,6 +196,32 @@ class DynamoDbTableTest extends \PHPUnit_Framework_TestCase
     /**
      * @depends testBatchPut
      */
+    public function testMultiQuery()
+    {
+        $result = [];
+        $this->table->multiQueryAndRun(
+            function ($item) use (&$result) {
+                $this->assertTrue(is_array($item));
+                $this->assertArrayHasKey('id', $item);
+                $this->assertArrayHasKey('mayor', $item);
+                $result[$item['id']] = $item['mayor'];
+            },
+            "city",
+            ['shanghai', 'beijing'],
+            "#code BETWEEN :min AND :max",
+            ["#code" => "code", "#mayor" => "mayor"],
+            [":min" => 100, ":max" => 105, ":notAllowed" => "lee"],
+            "city-code-index",
+            "#mayor <> :notAllowed"
+        );
+        ksort($result);
+        //var_dump($result);
+        $this->assertEquals([10=>"wang", 11=>"ye", 13=>"wang", 14=>"ye"], $result);
+    }
+    
+    /**
+     * @depends testBatchPut
+     */
     public function testQueryCount()
     {
         $restul = $this->table->queryCount(
