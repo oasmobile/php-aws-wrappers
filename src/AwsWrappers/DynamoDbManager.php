@@ -229,7 +229,7 @@ class DynamoDbManager
                             ) {
                                 foreach ($result['Table']['GlobalSecondaryIndexes'] as $gsi) {
                                     if ($gsi['IndexStatus'] != "ACTIVE") {
-                                        mdebug("gsi %s not ready, status = %s", $gsi['IndexName'], $gsi['IndexStatus']);
+                                        //mdebug("gsi %s not ready, status = %s", $gsi['IndexName'], $gsi['IndexStatus']);
                                         
                                         return;
                                     }
@@ -241,7 +241,7 @@ class DynamoDbManager
                             //var_dump($tableNames);
                         }
                         else {
-                            mdebug("Table %s not ready, status = %s", $tableName, $result['Table']['TableStatus']);
+                            //mdebug("Table %s not ready, status = %s", $tableName, $result['Table']['TableStatus']);
                         }
                     }
                 );
