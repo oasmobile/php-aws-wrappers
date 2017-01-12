@@ -238,7 +238,7 @@ class DynamoDbManager
                             
                             $k = array_search($tableName, $tableNames);
                             array_splice($tableNames, $k, 1);
-                            var_dump($tableNames);
+                            //var_dump($tableNames);
                         }
                         else {
                             mdebug("Table %s not ready, status = %s", $tableName, $result['Table']['TableStatus']);
