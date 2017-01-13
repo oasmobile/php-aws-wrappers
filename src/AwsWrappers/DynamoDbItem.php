@@ -98,7 +98,7 @@ class DynamoDbItem
         
         switch ($type) {
             case self::ATTRIBUTE_TYPE_STRING: {
-                if (!$v) {
+                if ($v === '') {
                     return [self::ATTRIBUTE_TYPE_NULL => true];
                 }
                 else {
