@@ -9,6 +9,7 @@
 namespace Oasis\Mlib\AwsWrappers\DynamoDb;
 
 use Aws\DynamoDb\DynamoDbClient;
+use Aws\DynamoDb\Exception\DynamoDbException;
 use Aws\Result;
 use Oasis\Mlib\AwsWrappers\DynamoDbItem;
 
@@ -32,7 +33,7 @@ class MultiQueryCommandWrapper
     {
         $fieldsMapping["#" . $hashKeyName] = $hashKeyName;
         $keyConditions                     = sprintf(
-            "#%s = :%s AND (%s)",
+            "#%s = :%s AND %s",
             $hashKeyName,
             $hashKeyName,
             $rangeKeyConditions
@@ -81,24 +82,31 @@ class MultiQueryCommandWrapper
                     $isAscendingOrder,
                     false
                 );
-                $promise->then(
-                    function (Result $result) use ($callback, $queue, $hashKeyValue) {
-                        $lastKey = isset($result['LastEvaluatedKey']) ? $result['LastEvaluatedKey'] : null;
-                        $items   = isset($result['Items']) ? $result['Items'] : [];
-                        foreach ($items as $typedItem) {
-                            $item = DynamoDbItem::createFromTypedArray($typedItem);
-                            call_user_func($callback, $item->toArray());
-                        }
-                        $queue->push([$hashKeyValue, $lastKey]);
-                    }
-                );
                 //mdebug("yielded %s", \GuzzleHttp\json_encode($paramsMapping));
-                yield $promise;
+                yield $hashKeyValue => $promise;
             }
         };
         
         while (!$queue->isEmpty()) {
-            \GuzzleHttp\Promise\each_limit($generator(), $concurrency)->wait();
+            /** @noinspection PhpUnusedParameterInspection */
+            \GuzzleHttp\Promise\each_limit(
+                $generator(),
+                $concurrency,
+                function (Result $result, $hashKeyValue) use ($callback, $queue) {
+                    $lastKey = isset($result['LastEvaluatedKey']) ? $result['LastEvaluatedKey'] : null;
+                    $items   = isset($result['Items']) ? $result['Items'] : [];
+                    foreach ($items as $typedItem) {
+                        $item = DynamoDbItem::createFromTypedArray($typedItem);
+                        call_user_func($callback, $item->toArray());
+                    }
+                    $queue->push([$hashKeyValue, $lastKey]);
+                }
+                ,
+                function (DynamoDbException $reason, $hashKeyValue) {
+                    //mtrace($reason, "Error while processing hash key $hashKeyValue");
+                    throw $reason;
+                }
+            )->wait();
         }
     }
     

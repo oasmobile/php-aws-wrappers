@@ -8,6 +8,7 @@
 
 namespace Oasis\Mlib\AwsWrappers\Test;
 
+use Aws\DynamoDb\Exception\DynamoDbException;
 use Oasis\Mlib\AwsWrappers\DynamoDbIndex;
 use Oasis\Mlib\AwsWrappers\DynamoDbItem;
 use Oasis\Mlib\AwsWrappers\DynamoDbManager;
@@ -216,7 +217,24 @@ class DynamoDbTableTest extends \PHPUnit_Framework_TestCase
         );
         ksort($result);
         //var_dump($result);
-        $this->assertEquals([10=>"wang", 11=>"ye", 13=>"wang", 14=>"ye"], $result);
+        $this->assertEquals([10 => "wang", 11 => "ye", 13 => "wang", 14 => "ye"], $result);
+        
+        $this->expectException(DynamoDbException::class);
+        $this->table->multiQueryAndRun(
+            function ($item) use (&$result) {
+                $this->assertTrue(is_array($item));
+                $this->assertArrayHasKey('id', $item);
+                $this->assertArrayHasKey('mayor', $item);
+                $result[$item['id']] = $item['mayor'];
+            },
+            "city",
+            ['shanghai', 'beijing'],
+            "#code BETWEEN :min AND :max2",
+            ["#code" => "code", "#mayor" => "mayor"],
+            [":min" => 100, ":max" => 105, ":notAllowed" => "lee"],
+            "city-code-index",
+            "#mayor <> :notAllowed"
+        );
     }
     
     /**
