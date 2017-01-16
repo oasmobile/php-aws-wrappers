@@ -26,7 +26,8 @@ class MultiQueryCommandWrapper
                       $filterExpression,
                       $evaluationLimit,
                       $isConsistentRead,
-                      $isAscendingOrder
+                      $isAscendingOrder,
+                      $concurrency
     )
     {
         $fieldsMapping["#" . $hashKeyName] = $hashKeyName;
@@ -36,11 +37,13 @@ class MultiQueryCommandWrapper
             $hashKeyName,
             $rangeKeyConditions
         );
+        $concurrency                       = min($concurrency, count($hashKeyValues));
         
         $queue = new \SplQueue();
         foreach ($hashKeyValues as $hashKeyValue) {
             $queue->push([$hashKeyValue, false]);
         }
+        
         $generator = function () use (
             $dbClient,
             $tableName,
@@ -95,7 +98,7 @@ class MultiQueryCommandWrapper
         };
         
         while (!$queue->isEmpty()) {
-            \GuzzleHttp\Promise\each_limit($generator(), count($hashKeyValues))->wait();
+            \GuzzleHttp\Promise\each_limit($generator(), $concurrency)->wait();
         }
     }
     

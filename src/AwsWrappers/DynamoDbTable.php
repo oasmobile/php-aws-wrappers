@@ -339,7 +339,8 @@ class DynamoDbTable
                                      $filterExpression = '',
                                      $evaluationLimit = 30,
                                      $isConsistentRead = false,
-                                     $isAscendingOrder = true
+                                     $isAscendingOrder = true,
+                                     $concurrency = 10
     )
     {
         $wrapper = new MultiQueryCommandWrapper();
@@ -356,7 +357,8 @@ class DynamoDbTable
             $filterExpression,
             $evaluationLimit,
             $isConsistentRead,
-            $isAscendingOrder
+            $isAscendingOrder,
+            $concurrency
         );
     }
     
