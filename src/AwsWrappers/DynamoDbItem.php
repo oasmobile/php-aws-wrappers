@@ -98,11 +98,11 @@ class DynamoDbItem
         
         switch ($type) {
             case self::ATTRIBUTE_TYPE_STRING: {
-                if ($v === '') {
-                    return [self::ATTRIBUTE_TYPE_NULL => true];
+                if (strlen(strval($v))) {
+                    return [$type => strval($v)];
                 }
                 else {
-                    return [$type => strval($v)];
+                    return [self::ATTRIBUTE_TYPE_NULL => true];
                 }
             }
                 break;

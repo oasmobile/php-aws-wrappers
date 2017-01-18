@@ -6,7 +6,6 @@
  * Date: 2015-12-04
  * Time: 17:16
  */
-
 use Oasis\Mlib\AwsWrappers\DynamoDbManager;
 use Oasis\Mlib\AwsWrappers\DynamoDbTable;
 use Oasis\Mlib\Logging\ConsoleHandler;
