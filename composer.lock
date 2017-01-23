@@ -9,16 +9,16 @@
     "packages": [
         {
             "name": "aws/aws-sdk-php",
-            "version": "3.20.13",
+            "version": "3.21.3",
             "source": {
                 "type": "git",
                 "url": "https://github.com/aws/aws-sdk-php.git",
-                "reference": "343c6c96468de5087ae5e7df4ccee2668857a5aa"
+                "reference": "3f371482c631b24c6e7168e745653f4b47942481"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://packagist.phpcomposer.com/files/aws/aws-sdk-php/343c6c96468de5087ae5e7df4ccee2668857a5aa.zip",
-                "reference": "343c6c96468de5087ae5e7df4ccee2668857a5aa",
+                "url": "https://packagist.phpcomposer.com/files/aws/aws-sdk-php/3f371482c631b24c6e7168e745653f4b47942481.zip",
+                "reference": "3f371482c631b24c6e7168e745653f4b47942481",
                 "shasum": ""
             },
             "require": {
@@ -85,7 +85,7 @@
                 "s3",
                 "sdk"
             ],
-            "time": "2017-01-04 18:20:17"
+            "time": "2017-01-20 21:24:50"
         },
         {
             "name": "bramus/ansi-php",
@@ -517,16 +517,16 @@
         },
         {
             "name": "oasis/event",
-            "version": "v1.0.0",
+            "version": "v1.0.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/oasmobile/php-event.git",
-                "reference": "34dc536c3b770af15b584018e3d2653903840773"
+                "reference": "67f42b00383cfbfc3b1eae495e4eed041a42634f"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/oasmobile/php-event/zipball/34dc536c3b770af15b584018e3d2653903840773",
-                "reference": "34dc536c3b770af15b584018e3d2653903840773",
+                "url": "https://packagist.phpcomposer.com/files/oasmobile/php-event/67f42b00383cfbfc3b1eae495e4eed041a42634f.zip",
+                "reference": "67f42b00383cfbfc3b1eae495e4eed041a42634f",
                 "shasum": ""
             },
             "require-dev": {
@@ -549,29 +549,28 @@
                 }
             ],
             "description": "Event dispatching helpers",
-            "time": "2015-12-29 14:12:30"
+            "time": "2017-01-23 09:27:02"
         },
         {
             "name": "oasis/logging",
-            "version": "v1.1.9",
+            "version": "v1.2.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/oasmobile/php-logging.git",
-                "reference": "36762274bea0070fe637991b968b655990e79493"
+                "reference": "6aa0cd53f559aa6737c8734faa933628eb7277ba"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://packagist.phpcomposer.com/files/oasmobile/php-logging/36762274bea0070fe637991b968b655990e79493.zip",
-                "reference": "36762274bea0070fe637991b968b655990e79493",
+                "url": "https://packagist.phpcomposer.com/files/oasmobile/php-logging/6aa0cd53f559aa6737c8734faa933628eb7277ba.zip",
+                "reference": "6aa0cd53f559aa6737c8734faa933628eb7277ba",
                 "shasum": ""
             },
             "require": {
                 "bramus/monolog-colored-line-formatter": "^2.0",
                 "monolog/monolog": "^1.17",
-                "oasis/utils": "^1.0"
+                "oasis/utils": "^1.6"
             },
             "require-dev": {
-                "oasis/aws-wrappers": "^1.0",
                 "phpunit/phpunit": "^5.1",
                 "symfony/console": "^3.0",
                 "symfony/finder": "^3.0"
@@ -600,7 +599,7 @@
                 }
             ],
             "description": "Wrapper of monolog/monolog. Should be easier to use/configure than monolog",
-            "time": "2016-07-12 06:49:10"
+            "time": "2017-01-10 07:47:07"
         },
         {
             "name": "oasis/utils",
@@ -788,16 +787,16 @@
         },
         {
             "name": "symfony/intl",
-            "version": "v3.2.1",
+            "version": "v3.2.2",
             "source": {
                 "type": "git",
                 "url": "https://github.com/symfony/intl.git",
-                "reference": "8050d05b9285febdcf2135bdd06678b93d64fde8"
+                "reference": "6102349d68bb6b5a1e02593714189fdf8656ab62"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://packagist.phpcomposer.com/files/symfony/intl/8050d05b9285febdcf2135bdd06678b93d64fde8.zip",
-                "reference": "8050d05b9285febdcf2135bdd06678b93d64fde8",
+                "url": "https://packagist.phpcomposer.com/files/symfony/intl/6102349d68bb6b5a1e02593714189fdf8656ab62.zip",
+                "reference": "6102349d68bb6b5a1e02593714189fdf8656ab62",
                 "shasum": ""
             },
             "require": {
@@ -859,7 +858,7 @@
                 "l10n",
                 "localization"
             ],
-            "time": "2016-11-18 21:17:59"
+            "time": "2017-01-02 20:32:22"
         },
         {
             "name": "symfony/polyfill",
@@ -952,16 +951,16 @@
         },
         {
             "name": "voku/portable-utf8",
-            "version": "3.1.10",
+            "version": "3.1.12",
             "source": {
                 "type": "git",
                 "url": "https://github.com/voku/portable-utf8.git",
-                "reference": "e0f45282a59cb2124b23897108b39f23100f2a1e"
+                "reference": "c74a4e12540f0a3eab525ba1fa0825b6dca4bbd4"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://packagist.phpcomposer.com/files/voku/portable-utf8/e0f45282a59cb2124b23897108b39f23100f2a1e.zip",
-                "reference": "e0f45282a59cb2124b23897108b39f23100f2a1e",
+                "url": "https://packagist.phpcomposer.com/files/voku/portable-utf8/c74a4e12540f0a3eab525ba1fa0825b6dca4bbd4.zip",
+                "reference": "c74a4e12540f0a3eab525ba1fa0825b6dca4bbd4",
                 "shasum": ""
             },
             "require": {
@@ -1018,7 +1017,7 @@
                 "utf-8",
                 "utf8"
             ],
-            "time": "2017-01-03 13:56:55"
+            "time": "2017-01-23 11:11:40"
         }
     ],
     "packages-dev": [
@@ -1329,16 +1328,16 @@
         },
         {
             "name": "phpunit/php-code-coverage",
-            "version": "4.0.4",
+            "version": "4.0.5",
             "source": {
                 "type": "git",
                 "url": "https://github.com/sebastianbergmann/php-code-coverage.git",
-                "reference": "c14196e64a78570034afd0b7a9f3757ba71c2a0a"
+                "reference": "c19cfc7cbb0e9338d8c469c7eedecc2a428b0971"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://packagist.phpcomposer.com/files/sebastianbergmann/php-code-coverage/c14196e64a78570034afd0b7a9f3757ba71c2a0a.zip",
-                "reference": "c14196e64a78570034afd0b7a9f3757ba71c2a0a",
+                "url": "https://packagist.phpcomposer.com/files/sebastianbergmann/php-code-coverage/c19cfc7cbb0e9338d8c469c7eedecc2a428b0971.zip",
+                "reference": "c19cfc7cbb0e9338d8c469c7eedecc2a428b0971",
                 "shasum": ""
             },
             "require": {
@@ -1388,7 +1387,7 @@
                 "testing",
                 "xunit"
             ],
-            "time": "2016-12-20 15:22:42"
+            "time": "2017-01-20 15:06:43"
         },
         {
             "name": "phpunit/php-file-iterator",
@@ -1573,16 +1572,16 @@
         },
         {
             "name": "phpunit/phpunit",
-            "version": "5.7.5",
+            "version": "5.7.6",
             "source": {
                 "type": "git",
                 "url": "https://github.com/sebastianbergmann/phpunit.git",
-                "reference": "50fd2be8f3e23e91da825f36f08e5f9633076ffe"
+                "reference": "caf8141b89691498d91aaac6c82e9cd5f685ae86"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://packagist.phpcomposer.com/files/sebastianbergmann/phpunit/50fd2be8f3e23e91da825f36f08e5f9633076ffe.zip",
-                "reference": "50fd2be8f3e23e91da825f36f08e5f9633076ffe",
+                "url": "https://packagist.phpcomposer.com/files/sebastianbergmann/phpunit/caf8141b89691498d91aaac6c82e9cd5f685ae86.zip",
+                "reference": "caf8141b89691498d91aaac6c82e9cd5f685ae86",
                 "shasum": ""
             },
             "require": {
@@ -1594,7 +1593,7 @@
                 "myclabs/deep-copy": "~1.3",
                 "php": "^5.6 || ^7.0",
                 "phpspec/prophecy": "^1.6.2",
-                "phpunit/php-code-coverage": "^4.0.3",
+                "phpunit/php-code-coverage": "^4.0.4",
                 "phpunit/php-file-iterator": "~1.4",
                 "phpunit/php-text-template": "~1.2",
                 "phpunit/php-timer": "^1.0.6",
@@ -1651,7 +1650,7 @@
                 "testing",
                 "xunit"
             ],
-            "time": "2016-12-28 07:18:51"
+            "time": "2017-01-22 08:39:59"
         },
         {
             "name": "phpunit/phpunit-mock-objects",
@@ -2226,75 +2225,17 @@
             "time": "2016-10-03 07:35:21"
         },
         {
-            "name": "symfony/polyfill-intl-icu",
-            "version": "v1.2.0",
-            "source": {
-                "type": "git",
-                "url": "https://github.com/symfony/polyfill-intl-icu.git",
-                "reference": "0f8dc2c45f69f8672379e9210bca4a115cd5146f"
-            },
-            "dist": {
-                "type": "zip",
-                "url": "https://packagist.phpcomposer.com/files/symfony/polyfill-intl-icu/0f8dc2c45f69f8672379e9210bca4a115cd5146f.zip",
-                "reference": "0f8dc2c45f69f8672379e9210bca4a115cd5146f",
-                "shasum": ""
-            },
-            "require": {
-                "php": ">=5.3.3",
-                "symfony/intl": "~2.3|~3.0"
-            },
-            "suggest": {
-                "ext-intl": "For best performance"
-            },
-            "type": "library",
-            "extra": {
-                "branch-alias": {
-                    "dev-master": "1.2-dev"
-                }
-            },
-            "autoload": {
-                "files": [
-                    "bootstrap.php"
-                ]
-            },
-            "notification-url": "https://packagist.org/downloads/",
-            "license": [
-                "MIT"
-            ],
-            "authors": [
-                {
-                    "name": "Nicolas Grekas",
-                    "email": "p@tchwork.com"
-                },
-                {
-                    "name": "Symfony Community",
-                    "homepage": "https://symfony.com/contributors"
-                }
-            ],
-            "description": "Symfony polyfill for intl's ICU-related data and classes",
-            "homepage": "https://symfony.com",
-            "keywords": [
-                "compatibility",
-                "icu",
-                "intl",
-                "polyfill",
-                "portable",
-                "shim"
-            ],
-            "time": "2016-05-18 14:26:46"
-        },
-        {
             "name": "symfony/yaml",
-            "version": "v3.2.1",
+            "version": "v3.2.2",
             "source": {
                 "type": "git",
                 "url": "https://github.com/symfony/yaml.git",
-                "reference": "a7095af4b97a0955f85c8989106c249fa649011f"
+                "reference": "50eadbd7926e31842893c957eca362b21592a97d"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://packagist.phpcomposer.com/files/symfony/yaml/a7095af4b97a0955f85c8989106c249fa649011f.zip",
-                "reference": "a7095af4b97a0955f85c8989106c249fa649011f",
+                "url": "https://packagist.phpcomposer.com/files/symfony/yaml/50eadbd7926e31842893c957eca362b21592a97d.zip",
+                "reference": "50eadbd7926e31842893c957eca362b21592a97d",
                 "shasum": ""
             },
             "require": {
@@ -2336,7 +2277,7 @@
             ],
             "description": "Symfony Yaml Component",
             "homepage": "https://symfony.com",
-            "time": "2016-12-10 10:07:06"
+            "time": "2017-01-03 13:51:32"
         },
         {
             "name": "webmozart/assert",
