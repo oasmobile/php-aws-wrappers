@@ -33,12 +33,14 @@ class MultiQueryCommandWrapper
     {
         $fieldsMapping["#" . $hashKeyName] = $hashKeyName;
         $keyConditions                     = sprintf(
-            "#%s = :%s AND %s",
+            "#%s = :%s",
             $hashKeyName,
-            $hashKeyName,
-            $rangeKeyConditions
+            $hashKeyName
         );
-        $concurrency                       = min($concurrency, count($hashKeyValues));
+        if ($rangeKeyConditions) {
+            $keyConditions .= " AND " . $rangeKeyConditions;
+        }
+        $concurrency = min($concurrency, count($hashKeyValues));
         
         $queue = new \SplQueue();
         foreach ($hashKeyValues as $hashKeyValue) {

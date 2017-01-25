@@ -199,6 +199,24 @@ class DynamoDbTableTest extends \PHPUnit_Framework_TestCase
      */
     public function testMultiQuery()
     {
+        // test on index without range condition
+        $result = [];
+        $this->table->multiQueryAndRun(
+            function ($item) use (&$result) {
+                $this->assertTrue(is_array($item));
+                $this->assertArrayHasKey('id', $item);
+                $this->assertArrayHasKey('mayor', $item);
+                $result[$item['id']] = $item['mayor'];
+            },
+            "city",
+            ['shanghai', 'beijing'],
+            "",
+            [],
+            [],
+            "city-code-index"
+        );
+        $this->assertEquals(10, count($result));
+        
         $result = [];
         $this->table->multiQueryAndRun(
             function ($item) use (&$result) {
@@ -235,6 +253,7 @@ class DynamoDbTableTest extends \PHPUnit_Framework_TestCase
             "city-code-index",
             "#mayor <> :notAllowed"
         );
+        
     }
     
     /**
