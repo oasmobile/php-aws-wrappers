@@ -30,9 +30,9 @@ class DynamoDbTableTest extends \PHPUnit_Framework_TestCase
         $prefix  = UTConfig::$dynamodbConfig['table-prefix'];
         if (self::DEBUG) {
             self::$tableName = $prefix . "table";
-        //}
-        //else {
-        //    self::$tableName = $prefix . date('Ymd-His');
+        }
+        else {
+            self::$tableName = $prefix . date('Ymd-His');
             
             $existing = $manager->listTables("#^" . preg_quote($prefix) . "#");
             foreach ($existing as $oldTable) {
