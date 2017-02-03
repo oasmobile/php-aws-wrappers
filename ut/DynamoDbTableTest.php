@@ -16,7 +16,7 @@ use Oasis\Mlib\AwsWrappers\DynamoDbTable;
 
 class DynamoDbTableTest extends \PHPUnit_Framework_TestCase
 {
-    const DEBUG = 0;
+    const DEBUG = 1;
     protected static $tableName;
     
     /** @var  DynamoDbTable */
@@ -30,9 +30,9 @@ class DynamoDbTableTest extends \PHPUnit_Framework_TestCase
         $prefix  = UTConfig::$dynamodbConfig['table-prefix'];
         if (self::DEBUG) {
             self::$tableName = $prefix . "table";
-        }
-        else {
-            self::$tableName = $prefix . date('Ymd-His');
+        //}
+        //else {
+        //    self::$tableName = $prefix . date('Ymd-His');
             
             $existing = $manager->listTables("#^" . preg_quote($prefix) . "#");
             foreach ($existing as $oldTable) {
@@ -80,6 +80,28 @@ class DynamoDbTableTest extends \PHPUnit_Framework_TestCase
         $this->table->set($obj);
         $result = $this->table->get(['id' => 1]);
         $this->assertEquals($obj, $result);
+    }
+    
+    public function testBacthDelete()
+    {
+        $writes = [];
+        for ($i = 0; $i < 10; ++$i) {
+            $obj                = [
+                "id"   => 100 + $i,
+                "city" => ($i % 2) ? "dallas" : "houston",
+                "code" => 300 + $i,
+            ];
+            $writes[$obj["id"]] = $obj;
+        }
+        $this->table->batchPut($writes);
+        $keys = [];
+        foreach ($writes as $k => $v) {
+            $key    = ["id" => intval($k)];
+            $keys[] = $key;
+        }
+        $this->table->batchDelete($keys);
+        
+        $this->assertEquals(null, $this->table->get(['id' => 101]));
     }
     
     public function testBatchPut()

@@ -66,6 +66,12 @@ class DynamoDbTable
         $this->dbClient->updateTable($args);
     }
     
+    public function batchDelete(array $objs,
+                                $concurrency = 10)
+    {
+        $this->doBatchWrite(false, $objs, $concurrency);
+    }
+    
     public function batchGet(array $keys,
                              $isConsistentRead = false,
                              $concurrency = 10,
@@ -158,74 +164,9 @@ class DynamoDbTable
     }
     
     public function batchPut(array $objs,
-                             $concurrency = 10,
-                             $objIsTyped = false,
-                             $retryDelay = 0)
+                             $concurrency = 10)
     {
-        $promises    = [];
-        $writes      = [];
-        $unprocessed = [];
-        
-        $flushCallback = function ($limit = 25) use (&$promises, &$writes, &$unprocessed) {
-            if (count($writes) >= $limit) {
-                $reqArgs = [
-                    "RequestItems" => [
-                        $this->tableName => $writes,
-                    ],
-                ];
-                //$reqArgs['ReturnConsumedCapacity'] = "TOTAL";
-                $promise    = $this->dbClient->batchWriteItemAsync($reqArgs);
-                $promises[] = $promise;
-                $writes     = [];
-            }
-        };
-        foreach ($objs as $obj) {
-            $item     = $objIsTyped ? DynamoDbItem::createFromTypedArray($obj) :
-                DynamoDbItem::createFromArray($obj, $this->attributeTypes);
-            $req      = [
-                "PutRequest" => [
-                    "Item" => $item->getData(),
-                ],
-            ];
-            $writes[] = $req;
-            call_user_func($flushCallback);
-        }
-        call_user_func($flushCallback, 1);
-        
-        \GuzzleHttp\Promise\each_limit(
-            $promises,
-            $concurrency,
-            function (Result $result) use (&$unprocessed) {
-                $unprocessedItems = $result['UnprocessedItems'];
-                if (isset($unprocessedItems[$this->tableName])) {
-                    $currentUnprocessed = $unprocessedItems[$this->tableName];
-                    mdebug("Unprocessed = %d", count($currentUnprocessed));
-                    foreach ($currentUnprocessed as $action) {
-                        $unprocessed[] = $action['PutRequest']['Item'];
-                    }
-                }
-            },
-            function ($e) {
-                merror("Exception got: %s!", get_class($e));
-                if ($e instanceof DynamoDbException) {
-                    mtrace(
-                        $e,
-                        "Exception while batch updating dynamo db item, aws code = "
-                        . $e->getAwsErrorCode()
-                        . ", type = "
-                        . $e->getAwsErrorType()
-                    );
-                }
-                throw $e;
-            }
-        )->wait();
-        
-        if ($unprocessed) {
-            $retryDelay = $retryDelay ? : 925;
-            mdebug("sleeping $retryDelay ms");
-            usleep($retryDelay * 1000);
-            $this->batchPut($unprocessed, $concurrency, true, $retryDelay * 2);
-        }
+        $this->doBatchWrite(true, $objs, $concurrency);
     }
     
     public function delete($keys)
@@ -359,6 +300,33 @@ class DynamoDbTable
             $isConsistentRead,
             $isAscendingOrder,
             $concurrency
+        );
+    }
+    
+    public function parallelScanAndRun($parallel,
+                                       callable $callback,
+                                       $filterExpression = '',
+                                       array $fieldsMapping = [],
+                                       array $paramsMapping = [],
+                                       $indexName = DynamoDbIndex::PRIMARY_INDEX,
+                                       $isConsistentRead = false,
+                                       $isAscendingOrder = true)
+    {
+        $wrapper = new ParallelScanCommandWrapper();
+        
+        $wrapper(
+            $this->dbClient,
+            $this->tableName,
+            $callback,
+            $filterExpression,
+            $fieldsMapping,
+            $paramsMapping,
+            $indexName,
+            10000,
+            $isConsistentRead,
+            $isAscendingOrder,
+            $parallel,
+            false
         );
     }
     
@@ -542,33 +510,6 @@ class DynamoDbTable
                 false
             );
         } while ($lastKey != null && !$stoppedByCallback);
-    }
-    
-    public function parallelScanAndRun($parallel,
-                                       callable $callback,
-                                       $filterExpression = '',
-                                       array $fieldsMapping = [],
-                                       array $paramsMapping = [],
-                                       $indexName = DynamoDbIndex::PRIMARY_INDEX,
-                                       $isConsistentRead = false,
-                                       $isAscendingOrder = true)
-    {
-        $wrapper = new ParallelScanCommandWrapper();
-        
-        $wrapper(
-            $this->dbClient,
-            $this->tableName,
-            $callback,
-            $filterExpression,
-            $fieldsMapping,
-            $paramsMapping,
-            $indexName,
-            10000,
-            $isConsistentRead,
-            $isAscendingOrder,
-            $parallel,
-            false
-        );
     }
     
     public function scanCount($filterExpression = '',
@@ -937,6 +878,87 @@ class DynamoDbTable
             else {
                 throw $e;
             }
+        }
+    }
+    
+    protected function doBatchWrite($isPut,
+                                    array $objs,
+                                    $concurrency = 10,
+                                    $objIsTyped = false,
+                                    $retryDelay = 0)
+    {
+        $promises    = [];
+        $writes      = [];
+        $unprocessed = [];
+        
+        $flushCallback = function ($limit = 25) use (&$promises, &$writes, &$unprocessed) {
+            if (count($writes) >= $limit) {
+                $reqArgs = [
+                    "RequestItems" => [
+                        $this->tableName => $writes,
+                    ],
+                ];
+                //$reqArgs['ReturnConsumedCapacity'] = "TOTAL";
+                $promise    = $this->dbClient->batchWriteItemAsync($reqArgs);
+                $promises[] = $promise;
+                $writes     = [];
+            }
+        };
+        foreach ($objs as $obj) {
+            $item = $objIsTyped ? DynamoDbItem::createFromTypedArray($obj) :
+                DynamoDbItem::createFromArray($obj, $this->attributeTypes);
+            if ($isPut) {
+                $req = [
+                    "PutRequest" => [
+                        "Item" => $item->getData(),
+                    ],
+                ];
+            }
+            else {
+                $req = [
+                    "DeleteRequest" => [
+                        "Key" => $item->getData(),
+                    ],
+                ];
+            }
+            $writes[] = $req;
+            call_user_func($flushCallback);
+        }
+        call_user_func($flushCallback, 1);
+        
+        \GuzzleHttp\Promise\each_limit(
+            $promises,
+            $concurrency,
+            function (Result $result) use (&$unprocessed) {
+                $unprocessedItems = $result['UnprocessedItems'];
+                if (isset($unprocessedItems[$this->tableName])) {
+                    $currentUnprocessed = $unprocessedItems[$this->tableName];
+                    mdebug("Unprocessed = %d", count($currentUnprocessed));
+                    foreach ($currentUnprocessed as $action) {
+                        $unprocessed[] = $action['PutRequest']['Item'];
+                    }
+                }
+            },
+            function ($e) {
+                merror("Exception got: %s!", get_class($e));
+                if ($e instanceof DynamoDbException) {
+                    mtrace(
+                        $e,
+                        "Exception while batch updating dynamo db item, aws code = "
+                        . $e->getAwsErrorCode()
+                        . ", type = "
+                        . $e->getAwsErrorType()
+                    );
+                }
+                throw $e;
+            }
+        )->wait();
+        
+        if ($unprocessed) {
+            $retryDelay = $retryDelay ? : 925;
+            mdebug("sleeping $retryDelay ms");
+            usleep($retryDelay * 1000);
+            $this->doBatchWrite($isPut, $unprocessed, $concurrency, true, $retryDelay * 2);
         }
     }
 }
