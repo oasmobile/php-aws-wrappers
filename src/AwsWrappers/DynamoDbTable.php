@@ -929,13 +929,18 @@ class DynamoDbTable
         \GuzzleHttp\Promise\each_limit(
             $promises,
             $concurrency,
-            function (Result $result) use (&$unprocessed) {
+            function (Result $result) use ($isPut, &$unprocessed) {
                 $unprocessedItems = $result['UnprocessedItems'];
                 if (isset($unprocessedItems[$this->tableName])) {
                     $currentUnprocessed = $unprocessedItems[$this->tableName];
                     mdebug("Unprocessed = %d", count($currentUnprocessed));
                     foreach ($currentUnprocessed as $action) {
-                        $unprocessed[] = $action['PutRequest']['Item'];
+                        if ($isPut) {
+                            $unprocessed[] = $action['PutRequest']['Item'];
+                        }
+                        else {
+                            $unprocessed[] = $action['DeleteRequest']['Key'];
+                        }
                     }
                 }
             },
