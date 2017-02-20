@@ -16,7 +16,7 @@ use Oasis\Mlib\AwsWrappers\DynamoDbTable;
 
 class DynamoDbTableTest extends \PHPUnit_Framework_TestCase
 {
-    const DEBUG = 1;
+    const DEBUG = 0;
     protected static $tableName;
     
     /** @var  DynamoDbTable */

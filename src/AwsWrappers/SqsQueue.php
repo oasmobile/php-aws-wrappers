@@ -8,6 +8,7 @@
 
 namespace Oasis\Mlib\AwsWrappers;
 
+use Aws\Result;
 use Aws\Sqs\Exception\SqsException;
 use Aws\Sqs\SqsClient;
 use Oasis\Mlib\Event\EventDispatcherInterface;
@@ -265,31 +266,75 @@ class SqsQueue implements EventDispatcherInterface
         return $sent_msg;
     }
     
-    public function sendMessages(array $payrolls, $delay = 0, array $attributes_list = [])
+    public function sendMessages(array $payrolls, $delay = 0, array $attributesList = [], $concurrency = 10)
     {
-        if ($attributes_list && count($payrolls) != count($attributes_list)) {
+        if ($attributesList && count($payrolls) != count($attributesList)) {
             throw new \UnexpectedValueException("Attribute list size is different than num of payrolls!");
         }
         
-        $total = count($payrolls);
+        $total         = count($payrolls);
+        $progressCount = 0;
         
-        $buffer              = [];
-        $buffered_attributes = [];
-        while (count($payrolls) > 0) {
-            $buffer[] = array_pop($payrolls);
-            if ($attributes_list) {
-                $buffered_attributes[] = array_pop($attributes_list);
+        $promises       = [];
+        $failedMessages = [];
+        
+        $buffer             = [];
+        $bufferedAttributes = [];
+        foreach ($payrolls as $idx => $payroll) {
+            $buffer[$idx] = $payroll;
+            if (isset($attributesList[$idx])) {
+                $bufferedAttributes[] = $attributesList[$idx];
             }
+            
             if (count($buffer) == 10) {
-                $this->sendMessageBatch($buffer, $buffered_attributes, $delay);
-                $this->dispatch(self::SEND_PROGRESS, (1 - count($payrolls) / $total));
-                $buffer = $buffered_attributes = [];
+                $promise    = $this->getSendMessageBatchAsyncPromise($buffer, $bufferedAttributes, $delay);
+                $promises[] = $promise;
+                $buffer     = $bufferedAttributes = [];
             }
         }
         if (count($buffer) > 0) {
-            $this->sendMessageBatch($buffer, $buffered_attributes, $delay);
-            $this->dispatch(self::SEND_PROGRESS, 1);
+            $promise    = $this->getSendMessageBatchAsyncPromise($buffer, $bufferedAttributes, $delay);
+            $promises[] = $promise;
         }
+        
+        \GuzzleHttp\Promise\each_limit(
+            $promises,
+            $concurrency,
+            function (Result $result) use (&$failedMessages, &$progressCount, $total) {
+                if (isset($result['Failed'])) {
+                    foreach ($result['Failed'] as $failed) {
+                        mwarning(
+                            "Batch sending message failed, code = %s, id = %s, msg = %s, senderfault = %s",
+                            $failed['Code'],
+                            $failed['Id'],
+                            $failed['Message'],
+                            $failed['SenderFault']
+                        );
+                        $failedMessages[$failed['Id']] = $failed['Message'];
+                    }
+                    $progressCount += count($result['Failed']);
+                }
+                if (isset($result['Successful'])) {
+                    $progressCount += count($result['Successful']);
+                }
+                $this->dispatch(self::SEND_PROGRESS, $progressCount / $total);
+            },
+            function ($e) {
+                merror("Exception got: %s!", get_class($e));
+                if ($e instanceof SqsException) {
+                    mtrace(
+                        $e,
+                        sprintf(
+                            "Exception while batch sending SQS messages, aws code = %s, type = %s",
+                            $e->getAwsErrorCode(),
+                            $e->getAwsErrorType()
+                        ),
+                        "error"
+                    );
+                }
+                throw $e;
+            }
+        )->wait();
     }
     
     public function getAttribute($name)
@@ -453,12 +498,12 @@ class SqsQueue implements EventDispatcherInterface
         return $ret;
     }
     
-    protected function sendMessageBatch(array $payrolls, array $attributes, $delay)
+    protected function getSendMessageBatchAsyncPromise(array $payrolls, array $attributes, $delay)
     {
         $entries = [];
         foreach ($payrolls as $idx => $payroll) {
             $entry = [
-                "Id"          => "buf_$idx",
+                "Id"          => strval($idx),
                 "MessageBody" => $payroll,
             ];
             if ($delay) {
@@ -469,25 +514,13 @@ class SqsQueue implements EventDispatcherInterface
             }
             $entries[] = $entry;
         }
-        $args   = [
+        $args = [
             "QueueUrl" => $this->getQueueUrl(),
             "Entries"  => $entries,
         ];
-        $result = $this->client->sendMessageBatch($args);
-        if ($result['Failed']) {
-            foreach ($result['Failed'] as $failed) {
-                mwarning(
-                    sprintf(
-                        "Batch sending message failed, code = %s, id = %s, msg = %s, senderfault = %s",
-                        $failed['Code'],
-                        $failed['Id'],
-                        $failed['Message'],
-                        $failed['SenderFault']
-                    )
-                );
-            }
-            throw new \RuntimeException("Cannot send some messages, consult log for more info!");
-        }
+        
+        return $this->client->sendMessageBatchAsync($args);
+        
     }
     
 }

@@ -135,7 +135,7 @@ class DynamoDbTable
                 //mdebug("Consumed = %.1f", $result['ConsumedCapacity'][0]['CapacityUnits']);
             },
             function ($e) {
-                merror("Exception got: %s%s!", get_class($e));
+                merror("Exception got: %s!", get_class($e));
                 if ($e instanceof DynamoDbException) {
                     mtrace(
                         $e,

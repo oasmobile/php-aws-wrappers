@@ -1,6 +1,9 @@
 aws:
-    region: ap-northeast-1
-    profile: oasis-minhao
+    region: cn-north-1
+    profile: beijing-minhao
 
 dynamodb:
     table-prefix: aws-wrappers-ut-
+
+sqs:
+    prefix: aws-wrappers-ut-sqs-

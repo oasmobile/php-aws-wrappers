@@ -14,6 +14,7 @@ class UTConfig
 {
     public static $awsConfig      = [];
     public static $dynamodbConfig = [];
+    public static $sqsConfig      = [];
     
     public static function load()
     {
@@ -22,5 +23,6 @@ class UTConfig
         
         self::$awsConfig      = $yml['aws'];
         self::$dynamodbConfig = $yml['dynamodb'];
+        self::$sqsConfig      = $yml['sqs'];
     }
 }
