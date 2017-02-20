@@ -266,6 +266,14 @@ class SqsQueue implements EventDispatcherInterface
         return $sent_msg;
     }
     
+    /**
+     * @param array $payrolls
+     * @param int   $delay
+     * @param array $attributesList
+     * @param int   $concurrency
+     *
+     * @return array failed messages, idx => message (idx is the index of payrolls in the req-arg)
+     */
     public function sendMessages(array $payrolls, $delay = 0, array $attributesList = [], $concurrency = 10)
     {
         if ($attributesList && count($payrolls) != count($attributesList)) {
@@ -335,6 +343,8 @@ class SqsQueue implements EventDispatcherInterface
                 throw $e;
             }
         )->wait();
+        
+        return $failedMessages;
     }
     
     public function getAttribute($name)

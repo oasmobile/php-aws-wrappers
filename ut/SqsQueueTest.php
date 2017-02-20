@@ -56,7 +56,7 @@ class SqsQueueTest extends \PHPUnit_Framework_TestCase
     
     public function testBatchSend()
     {
-        $batch    = 200;
+        $batch    = 175;
         $payrolls = [];
         for ($i = 0; $i < $batch; ++$i) {
             $payrolls[] = json_encode(
