@@ -57,12 +57,15 @@ class SqsQueue implements EventDispatcherInterface
         self::LAST_MODIFIED_TIMESTAMP,
         self::QUEUE_ARN,
     ];
+    const SERIALIZATION_FLAG = '_serialization';
     
     /** @var SqsClient */
     protected $client;
     protected $config;
     protected $url = null;
     protected $name;
+    /** @var array */
+    protected $sendFailureMessages = [];
     
     public function __construct($aws_config, $name)
     {
@@ -244,26 +247,22 @@ class SqsQueue implements EventDispatcherInterface
         return $buffer;
     }
     
+    /**
+     * @param       $payroll
+     * @param int   $delay
+     * @param array $attributes
+     *
+     * @return bool|SqsSentMessage
+     */
     public function sendMessage($payroll, $delay = 0, $attributes = [])
     {
-        $args = [
-            "QueueUrl"    => $this->getQueueUrl(),
-            "MessageBody" => $payroll,
-        ];
-        if ($delay) {
-            $args['DelaySeconds'] = $delay;
+        $sentMessages = $this->sendMessages([$payroll], $delay, [$attributes]);
+        if (!$sentMessages) {
+            return false;
         }
-        if ($attributes) {
-            $args['MessageAttributes'] = $attributes;
+        else {
+            return $sentMessages[0];
         }
-        $result   = $this->client->sendMessage($args);
-        $sent_msg = new SqsSentMessage($result->toArray());
-        $md5      = md5($payroll);
-        if ($result['MD5OfMessageBody'] != $md5) {
-            throw new \RuntimeException("MD5 of payroll is different on sent message!");
-        }
-        
-        return $sent_msg;
     }
     
     /**
@@ -272,7 +271,9 @@ class SqsQueue implements EventDispatcherInterface
      * @param array $attributesList
      * @param int   $concurrency
      *
-     * @return array failed messages, idx => message (idx is the index of payrolls in the req-arg)
+     * @return SqsSentMessage[] successful messages
+     *
+     * @NOTE: for failed messages, you can call getSendFailureMessages()
      */
     public function sendMessages(array $payrolls, $delay = 0, array $attributesList = [], $concurrency = 10)
     {
@@ -283,16 +284,28 @@ class SqsQueue implements EventDispatcherInterface
         $total         = count($payrolls);
         $progressCount = 0;
         
-        $promises       = [];
-        $failedMessages = [];
+        $promises                  = [];
+        $sentMessages              = [];
+        $this->sendFailureMessages = [];
         
         $buffer             = [];
         $bufferedAttributes = [];
+        $md5Expectation     = [];
         foreach ($payrolls as $idx => $payroll) {
             $buffer[$idx] = $payroll;
             if (isset($attributesList[$idx])) {
-                $bufferedAttributes[] = $attributesList[$idx];
+                $bufferedAttributes[$idx] = $attributesList[$idx];
             }
+            else {
+                $bufferedAttributes[$idx] = [];
+            }
+            
+            if (!is_string($buffer[$idx])) {
+                $buffer[$idx]                                       = base64_encode(serialize($buffer[$idx]));
+                $bufferedAttributes[$idx][self::SERIALIZATION_FLAG] = 'base64_serialize';
+            }
+            
+            $md5Expectation[$idx] = md5($buffer[$idx]);
             
             if (count($buffer) == 10) {
                 $promise    = $this->getSendMessageBatchAsyncPromise($buffer, $bufferedAttributes, $delay);
@@ -308,7 +321,12 @@ class SqsQueue implements EventDispatcherInterface
         \GuzzleHttp\Promise\each_limit(
             $promises,
             $concurrency,
-            function (Result $result) use (&$failedMessages, &$progressCount, $total) {
+            function (Result $result) use (
+                &$sentMessages,
+                &$progressCount,
+                &$md5Expectation,
+                $total
+            ) {
                 if (isset($result['Failed'])) {
                     foreach ($result['Failed'] as $failed) {
                         mwarning(
@@ -318,11 +336,20 @@ class SqsQueue implements EventDispatcherInterface
                             $failed['Message'],
                             $failed['SenderFault']
                         );
-                        $failedMessages[$failed['Id']] = $failed['Message'];
+                        $this->sendFailureMessages[$failed['Id']] = $failed['Message'];
                     }
                     $progressCount += count($result['Failed']);
                 }
                 if (isset($result['Successful'])) {
+                    foreach ($result['Successful'] as $successful) {
+                        $sentMessage = new SqsSentMessage($successful);
+                        if ($sentMessage->getMd5OfBody() != $md5Expectation[$successful['Id']]) {
+                            $failedMessages[$successful['Id']] = "MD5 mismatch of sent message!";
+                        }
+                        else {
+                            $sentMessages[$successful['Id']] = $sentMessage;
+                        }
+                    }
                     $progressCount += count($result['Successful']);
                 }
                 $this->dispatch(self::SEND_PROGRESS, $progressCount / $total);
@@ -344,7 +371,7 @@ class SqsQueue implements EventDispatcherInterface
             }
         )->wait();
         
-        return $failedMessages;
+        return $sentMessages;
     }
     
     public function getAttribute($name)
@@ -405,6 +432,17 @@ class SqsQueue implements EventDispatcherInterface
         return $this->url;
     }
     
+    /**
+     * In the format of idx => reason, idx is the array index of payrolls passed to sendMessages(). In case of sending
+     * only one message using sendMessage(), the idx is 0
+     *
+     * @return SqsSentMessage[]
+     */
+    public function getSendFailureMessages()
+    {
+        return $this->sendFailureMessages;
+    }
+    
     public function setAttributes(array $attributes)
     {
         $args = [
@@ -458,39 +496,39 @@ class SqsQueue implements EventDispatcherInterface
     }
     
     /**
-     * @param int   $max_count
+     * @param int   $maxCount
      * @param int   $wait
-     * @param int   $visibility_timeout
+     * @param int   $visibilityTimeout
      * @param array $metas
-     * @param array $message_attributes
+     * @param array $messageAttributes
      *
      * @return SqsReceivedMessage[]
      */
-    protected function receiveMessageBatch($max_count = 1,
+    protected function receiveMessageBatch($maxCount = 1,
                                            $wait = null,
-                                           $visibility_timeout = null,
+                                           $visibilityTimeout = null,
                                            $metas = [],
-                                           $message_attributes = [])
+                                           $messageAttributes = [])
     {
-        if ($max_count > 10 || $max_count < 1) {
+        if ($maxCount > 10 || $maxCount < 1) {
             throw new \InvalidArgumentException("Max count for SQS message receiving is 10");
         }
         
+        $messageAttributes[] = self::SERIALIZATION_FLAG;
+        
         $args = [
-            "QueueUrl"            => $this->getQueueUrl(),
-            "MaxNumberOfMessages" => $max_count,
+            "QueueUrl"              => $this->getQueueUrl(),
+            "MaxNumberOfMessages"   => $maxCount,
+            'MessageAttributeNames' => $messageAttributes,
         ];
         if ($wait !== null && is_int($wait)) {
             $args['WaitTimeSeconds'] = $wait;
         }
-        if ($visibility_timeout !== null && is_int($visibility_timeout)) {
-            $args['VisibilityTimeout'] = $visibility_timeout;
+        if ($visibilityTimeout !== null && is_int($visibilityTimeout)) {
+            $args['VisibilityTimeout'] = $visibilityTimeout;
         }
         if ($metas && is_array($metas)) {
             $args['AttributeNames'] = $metas;
-        }
-        if ($message_attributes && is_array($message_attributes)) {
-            $args['MessageAttributeNames'] = $message_attributes;
         }
         
         $result   = $this->client->receiveMessage($args);
@@ -520,6 +558,18 @@ class SqsQueue implements EventDispatcherInterface
                 $entry['DelaySeconds'] = $delay;
             }
             if ($attributes) {
+                $attributes[$idx]           = array_map(
+                    function ($v) {
+                        if (!is_string($v)) {
+                            throw new \InvalidArgumentException(
+                                "Only string attribute is supported! attribute got: " . json_encode($v)
+                            );
+                        }
+                        
+                        return ['DataType' => 'String', 'StringValue' => $v];
+                    },
+                    $attributes[$idx]
+                );
                 $entry['MessageAttributes'] = $attributes[$idx];
             }
             $entries[] = $entry;
@@ -532,5 +582,4 @@ class SqsQueue implements EventDispatcherInterface
         return $this->client->sendMessageBatchAsync($args);
         
     }
-    
 }
