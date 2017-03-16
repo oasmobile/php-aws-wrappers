@@ -37,7 +37,22 @@ class SqsReceivedMessage extends SqsMessage
             $this->body = unserialize(base64_decode($this->originalBody));
         }
         else {
-            $this->body = $this->originalBody;
+            try {
+                $json = \GuzzleHttp\json_decode($this->originalBody, true);
+                if (isset($json['Message'])) {
+                    $this->body = $json['Message'];
+                    
+                    if (isset($json['Subject']) && $json['Subject'] == 'base64_serialize') {
+                        $this->body = unserialize(base64_decode($this->body));
+                    }
+                }
+                else {
+                    $this->body = $this->originalBody;
+                }
+            } catch (\InvalidArgumentException $e) {
+                // Can't parse body out from json
+                $this->body = $this->originalBody;
+            }
         }
     }
     

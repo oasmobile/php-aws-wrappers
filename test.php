@@ -6,7 +6,7 @@
  * Date: 2015-12-04
  * Time: 17:16
  */
-use Oasis\Mlib\AwsWrappers\DynamoDbTable;
+use Oasis\Mlib\AwsWrappers\SnsPublisher;
 use Oasis\Mlib\AwsWrappers\SqsQueue;
 use Oasis\Mlib\Logging\ConsoleHandler;
 
@@ -18,27 +18,16 @@ $aws = [
     'region'  => 'cn-north-1',
 ];
 
-$table = new DynamoDbTable($aws, 'memory_leak_test');
+$obj       = new stdClass();
+$obj->name = 'jank';
+var_dump($obj);
 
-//$table = new Aws\DynamoDb\DynamoDbClient(
-//    $aws + [
-//        'version' => "2012-08-10",
-//    ]
-//);
-$sqs   = new SqsQueue($aws, 'watch-ut-alert-queue');
+$sns = new SnsPublisher($aws, 'arn:aws-cn:sns:cn-north-1:341381255897:dynamodb-manager-modset-ready');
+$sns->publishToSubscribedSQS($obj);
 
-$memory = memory_get_peak_usage();
-for ($i = 0; $i < 100000; ++$i) {
-    $result  = $table->get(['id' => 'abc']);
-    //$table->getItem(
-    //    [
-    //        "TableName" => 'memory_leak_test',
-    //        "Key"       => ['id' => ['S' => 'abc']],
-    //    ]
-    //);
-    //$sqs->receiveMessage(null);
-    //$sqs = new SqsQueue($aws, 'watch-ut-alert-queue');
-    $current = memory_get_peak_usage();
-    echo sprintf("Delta = %d, max = %dM\n", $current - $memory, memory_get_peak_usage() / 1024 / 1024);
-    $memory = $current;
+$sqs = new SqsQueue($aws, 'dynamodb-manager-on-modset-ready');
+while ($msg = $sqs->receiveMessage()) {
+    var_dump($msg->getBody());
+    $sqs->deleteMessage($msg);
 }
+

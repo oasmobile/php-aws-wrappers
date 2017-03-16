@@ -103,6 +103,25 @@ class SqsQueueTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals(9, $body->getMandatory('a', DataProviderInterface::INT_TYPE));
     }
     
+    public function testSNSPublishedSerialization()
+    {
+        $obj                 = new ArrayDataProvider(['a' => 9]);
+        $mockedSerialization = base64_encode(serialize($obj));
+        $structrued          = [
+            'Subject' => 'base64_serialize',
+            'Message' => $mockedSerialization,
+        ];
+        $this->sqs->sendMessage(\GuzzleHttp\json_encode($structrued));
+        $msg = $this->sqs->receiveMessage(5);
+        $this->sqs->deleteMessage($msg);
+        $this->assertTrue($msg instanceof SqsReceivedMessage);
+        /** @var ArrayDataProvider $body */
+        $body = $msg->getBody();
+        $this->assertTrue($body instanceof ArrayDataProvider);
+        $this->assertEquals(9, $body->getMandatory('a', DataProviderInterface::INT_TYPE));
+    
+    }
+    
     public function testFailureMessages()
     {
         $msg = "\x8";
@@ -120,6 +139,5 @@ class SqsQueueTest extends \PHPUnit_Framework_TestCase
         $failed = $this->sqs->getSendFailureMessages();
         $this->assertEquals(1, count($failed));
         $this->assertContains('Invalid binary character', $failed["x"]);
-        
     }
 }

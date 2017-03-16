@@ -30,12 +30,12 @@ class SnsPublisher
     const CHANNEL_BAIDU             = "BAIDU";
     const CHANNEL_MPNS              = "MPNS";
     const CHANNEL_WNS               = "WNS";
-
+    
     /** @var SnsClient */
     protected $client;
     protected $config;
     protected $topic_arn = '';
-
+    
     public function __construct($aws_config, $topic_arn)
     {
         $dp              = new ArrayDataProvider($aws_config);
@@ -47,18 +47,27 @@ class SnsPublisher
         $this->client    = new SnsClient($this->config);
         $this->topic_arn = $topic_arn;
     }
-
+    
+    public function publishToSubscribedSQS($messageBody)
+    {
+        $this->publish('base64_serialize', base64_encode(serialize($messageBody)), self::CHANNEL_SQS);
+    }
+    
     public function publish($subject, $body, $channels = [])
     {
         $structured = [
             'default' => $body,
         ];
-
+        
+        if (!is_array($channels)) {
+            $channels = [$channels];
+        }
         foreach ($channels as $channel) {
-            $is_supported = true;
+            $is_supported   = true;
+            $structuredBody = $body;
             switch ($channel) {
-                case self::CHANNEL_EMAIL:
                 case self::CHANNEL_SQS:
+                case self::CHANNEL_EMAIL:
                 case self::CHANNEL_LAMBDA:
                 case self::CHANNEL_HTTP:
                 case self::CHANNEL_HTTPS:
@@ -71,7 +80,7 @@ class SnsPublisher
                 case self::CHANNEL_APNS_VOIP_SANDBOX:
                 case self::CHANNEL_MACOS:
                 case self::CHANNEL_MACOS_SANDBOX:
-                    $body = [
+                    $structuredBody = [
                         "aps" => [
                             "alert" => $body,
                         ],
@@ -79,22 +88,22 @@ class SnsPublisher
                     break;
                 case self::CHANNEL_GCM:
                 case self::CHANNEL_ADM:
-                    $body = [
+                    $structuredBody = [
                         "data" => [
                             "message" => $body,
                         ],
                     ];
                     break;
                 case self::CHANNEL_BAIDU:
-                    $body = [
+                    $structuredBody = [
                         "title"       => $body,
                         "description" => $body,
                     ];
                     break;
                 case self::CHANNEL_MPNS:
-                    $body = htmlentities($body, ENT_XML1);
-                    $body = <<<XML
-<?xml version="1.0" encoding="utf-8"?><wp:Notification xmlns:wp="WPNotification"><wp:Tile><wp:Count>ENTER COUNT</wp:Count><wp:Title>$body</wp:Title></wp:Tile></wp:Notification>
+                    $structuredBody = htmlentities($body, ENT_XML1);
+                    $structuredBody = <<<XML
+<?xml version="1.0" encoding="utf-8"?><wp:Notification xmlns:wp="WPNotification"><wp:Tile><wp:Count>1</wp:Count><wp:Title>$structuredBody</wp:Title></wp:Tile></wp:Notification>
 XML;
                     break;
                 default:
@@ -103,10 +112,10 @@ XML;
                     break;
             }
             if ($is_supported) {
-                $structured[$channel] = $body;
+                $structured[$channel] = $structuredBody;
             }
         }
-        $json   = json_encode($structured);
+        $json = json_encode($structured);
         $this->client->publish(
             [
                 "Subject"          => $subject,
@@ -124,7 +133,7 @@ XML;
     {
         return $this->topic_arn;
     }
-
+    
     /**
      * @param string $topic_arn
      */
@@ -132,6 +141,5 @@ XML;
     {
         $this->topic_arn = $topic_arn;
     }
-
     
 }
