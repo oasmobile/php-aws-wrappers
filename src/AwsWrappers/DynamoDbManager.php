@@ -10,7 +10,6 @@ namespace Oasis\Mlib\AwsWrappers;
 
 use Aws\DynamoDb\DynamoDbClient;
 use Aws\Result;
-use Oasis\Mlib\Utils\ArrayDataProvider;
 
 class DynamoDbManager
 {
@@ -21,13 +20,8 @@ class DynamoDbManager
     
     public function __construct(array $awsConfig)
     {
-        $dp           = new ArrayDataProvider($awsConfig);
-        $this->config = [
-            'version' => "2012-08-10",
-            "profile" => $dp->getMandatory('profile'),
-            "region"  => $dp->getMandatory('region'),
-        ];
-        $this->db     = new DynamoDbClient($this->config);
+        $dp       = new AwsConfigDataProvider($awsConfig, '2012-08-10');
+        $this->db = new DynamoDbClient($dp->getConfig());
     }
     
     /**

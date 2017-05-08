@@ -16,7 +16,6 @@ use Oasis\Mlib\AwsWrappers\DynamoDb\MultiQueryCommandWrapper;
 use Oasis\Mlib\AwsWrappers\DynamoDb\ParallelScanCommandWrapper;
 use Oasis\Mlib\AwsWrappers\DynamoDb\QueryCommandWrapper;
 use Oasis\Mlib\AwsWrappers\DynamoDb\ScanCommandWrapper;
-use Oasis\Mlib\Utils\ArrayDataProvider;
 
 class DynamoDbTable
 {
@@ -30,13 +29,8 @@ class DynamoDbTable
     
     function __construct(array $awsConfig, $tableName, $attributeTypes = [])
     {
-        $dp                   = new ArrayDataProvider($awsConfig);
-        $this->config         = [
-            'version' => "2012-08-10",
-            "profile" => $dp->getMandatory('profile'),
-            "region"  => $dp->getMandatory('region'),
-        ];
-        $this->dbClient       = new DynamoDbClient($this->config);
+        $dp                   = new AwsConfigDataProvider($awsConfig, '2012-08-10');
+        $this->dbClient       = new DynamoDbClient($dp->getConfig());
         $this->tableName      = $tableName;
         $this->attributeTypes = $attributeTypes;
     }

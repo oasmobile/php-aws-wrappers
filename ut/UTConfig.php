@@ -13,6 +13,7 @@ use Symfony\Component\Yaml\Yaml;
 class UTConfig
 {
     public static $awsConfig      = [];
+    public static $awsApConfig    = [];
     public static $dynamodbConfig = [];
     public static $sqsConfig      = [];
     
@@ -22,6 +23,7 @@ class UTConfig
         $yml  = Yaml::parse(file_get_contents($file));
         
         self::$awsConfig      = $yml['aws'];
+        self::$awsApConfig    = $yml['aws-ap'];
         self::$dynamodbConfig = $yml['dynamodb'];
         self::$sqsConfig      = $yml['sqs'];
     }

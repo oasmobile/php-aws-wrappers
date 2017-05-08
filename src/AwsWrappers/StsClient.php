@@ -11,15 +11,15 @@ namespace Oasis\Mlib\AwsWrappers;
 class StsClient extends \Aws\Sts\StsClient
     implements CredentialProviderInterface
 {
-    public function __construct(array $args)
+    public function __construct(array $awsConfig)
     {
-        if (!isset($args['version'])) {
-            $args['version'] = "2011-06-15";
-        }
-        if (!isset($args['endpoint']) && isset($args['region'])) {
-            $args['endpoint'] = sprintf("https://sts.%s.amazonaws.com", $args['region']);
-        }
-        parent::__construct($args);
+        // 2017-05-08: could not recall why this endpoint setting is writtern, commented out for now
+        //if (!isset($awsConfig['endpoint']) && isset($awsConfig['region'])) {
+        //    $awsConfig['endpoint'] = sprintf("https://sts.%s.amazonaws.com", $awsConfig['region']);
+        //}
+        
+        $dp = new AwsConfigDataProvider($awsConfig, '2011-06-15');
+        parent::__construct($dp->getConfig());
     }
     
     /**

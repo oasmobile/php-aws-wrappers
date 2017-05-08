@@ -6,8 +6,7 @@
  * Date: 2015-12-04
  * Time: 17:16
  */
-use Oasis\Mlib\AwsWrappers\SnsPublisher;
-use Oasis\Mlib\AwsWrappers\SqsQueue;
+use Oasis\Mlib\AwsWrappers\StsClient;
 use Oasis\Mlib\Logging\ConsoleHandler;
 
 require_once __DIR__ . "/vendor/autoload.php";
@@ -17,17 +16,28 @@ $aws = [
     'profile' => 'beijing-minhao',
     'region'  => 'cn-north-1',
 ];
+$sts = new StsClient($aws);
 
-$obj       = new stdClass();
-$obj->name = 'jank';
-var_dump($obj);
+$expires = time() + 1800;
+$expires = 1141889120;
+$s2s     = <<<STOS
+GET\n
+\n
+\n
+1175139620\n
 
-$sns = new SnsPublisher($aws, 'arn:aws-cn:sns:cn-north-1:341381255897:dynamodb-manager-modset-ready');
-$sns->publishToSubscribedSQS($obj);
+/johnsmith/photos/puppy.jpg
+STOS;
 
-$sqs = new SqsQueue($aws, 'dynamodb-manager-on-modset-ready');
-while ($msg = $sqs->receiveMessage()) {
-    var_dump($msg->getBody());
-    $sqs->deleteMessage($msg);
-}
+$sig = urlencode(
+    base64_encode(
+        hash_hmac(
+            'sha1',
+            $s2s,
+            'AKIAIOSFODNN7EXAMPLE',
+            true
+        )
+    )
+);
 
+var_dump($sig);

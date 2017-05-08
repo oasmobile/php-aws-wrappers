@@ -9,7 +9,6 @@
 namespace Oasis\Mlib\AwsWrappers;
 
 use Aws\Sns\SnsClient;
-use Oasis\Mlib\Utils\ArrayDataProvider;
 
 class SnsPublisher
 {
@@ -34,18 +33,13 @@ class SnsPublisher
     /** @var SnsClient */
     protected $client;
     protected $config;
-    protected $topic_arn = '';
+    protected $topicArn = '';
     
-    public function __construct($aws_config, $topic_arn)
+    public function __construct($awsConfig, $topicArn)
     {
-        $dp              = new ArrayDataProvider($aws_config);
-        $this->config    = [
-            'version' => "2010-03-31",
-            "profile" => $dp->getMandatory('profile'),
-            "region"  => $dp->getMandatory('region'),
-        ];
-        $this->client    = new SnsClient($this->config);
-        $this->topic_arn = $topic_arn;
+        $dp             = new AwsConfigDataProvider($awsConfig, '2010-03-31');
+        $this->client   = new SnsClient($dp->getConfig());
+        $this->topicArn = $topicArn;
     }
     
     public function publishToSubscribedSQS($messageBody)
@@ -121,7 +115,7 @@ XML;
                 "Subject"          => $subject,
                 "Message"          => $json,
                 "MessageStructure" => "json",
-                "TopicArn"         => $this->topic_arn,
+                "TopicArn"         => $this->topicArn,
             ]
         );
     }
@@ -131,15 +125,15 @@ XML;
      */
     public function getTopicArn()
     {
-        return $this->topic_arn;
+        return $this->topicArn;
     }
     
     /**
-     * @param string $topic_arn
+     * @param string $topicArn
      */
-    public function setTopicArn($topic_arn)
+    public function setTopicArn($topicArn)
     {
-        $this->topic_arn = $topic_arn;
+        $this->topicArn = $topicArn;
     }
     
 }

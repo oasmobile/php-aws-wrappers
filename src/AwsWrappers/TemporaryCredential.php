@@ -17,7 +17,6 @@ class TemporaryCredential
     /** @var  string */
     public $secretAccessKey;
     /** @var  string */
-    /** @var  string */
     public $sessionToken;
     /** @var  DateTimeResult */
     public $expireDateTime;

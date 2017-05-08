@@ -13,7 +13,6 @@ use Aws\Sqs\Exception\SqsException;
 use Aws\Sqs\SqsClient;
 use Oasis\Mlib\Event\EventDispatcherInterface;
 use Oasis\Mlib\Event\EventDispatcherTrait;
-use Oasis\Mlib\Utils\ArrayDataProvider;
 
 class SqsQueue implements EventDispatcherInterface
 {
@@ -67,15 +66,10 @@ class SqsQueue implements EventDispatcherInterface
     /** @var array */
     protected $sendFailureMessages = [];
     
-    public function __construct($aws_config, $name)
+    public function __construct($awsConfig, $name)
     {
-        $dp           = new ArrayDataProvider($aws_config);
-        $this->config = [
-            'version' => "2012-11-05",
-            "profile" => $dp->getMandatory('profile'),
-            "region"  => $dp->getMandatory('region'),
-        ];
-        $this->client = new SqsClient($this->config);
+        $dp           = new AwsConfigDataProvider($awsConfig, '2012-11-05');
+        $this->client = new SqsClient($dp->getConfig());
         $this->name   = $name;
     }
     

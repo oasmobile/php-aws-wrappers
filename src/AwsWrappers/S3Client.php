@@ -10,14 +10,25 @@ namespace Oasis\Mlib\AwsWrappers;
 
 class S3Client extends \Aws\S3\S3Client
 {
-    public function __construct(array $args)
+    public function __construct(array $awsConfig)
     {
-        if (!isset($args['version'])) {
-            $args['version'] = "2006-03-01";
+        if (!isset($awsConfig['endpoint']) && isset($awsConfig['region'])) {
+            $awsConfig['endpoint'] = preg_match('/^cn-.*/', $awsConfig['region']) ?
+                sprintf("https://s3.%s.amazonaws.com.cn", $awsConfig['region']) :
+                sprintf("https://s3-%s.amazonaws.com", $awsConfig['region']);
         }
-        parent::__construct($args);
+        $dp = new AwsConfigDataProvider($awsConfig, '2006-03-01');
+        parent::__construct($dp->getConfig());
     }
-
+    
+    /**
+     * @NOTE: presigned URL will not work in AWS China
+     *
+     * @param        $path
+     * @param string $expires
+     *
+     * @return string
+     */
     public function getPresignedUri($path, $expires = '+30 minutes')
     {
         if (preg_match('#^s3://(.*?)/(.*)$#', $path, $matches)) {
@@ -29,7 +40,7 @@ class S3Client extends \Aws\S3\S3Client
         }
         $path = ltrim($path, "/");
         $path = preg_replace('#/+#', '/', $path);
-
+        
         $cmd = $this->getCommand(
             'GetObject',
             [
@@ -38,7 +49,7 @@ class S3Client extends \Aws\S3\S3Client
             ]
         );
         $req = $this->createPresignedRequest($cmd, $expires);
-
+        
         return strval($req->getUri());
     }
 }
