@@ -19,10 +19,13 @@ composer require oasis/aws-wrappers
 
 ## Prerequisite
 
-#### Profile
+#### Credentials
 
-Because oasis/aws-wrappers is only a wrapper on top of [aws/aws-php-sdk], it relies on the profile based authentication mechanism of the official SDK.
-You will need to setup a correct AWS profile. Please prepare your `~/.aws/credentials` file with permission 600 and content like below:
+Because oasis/aws-wrappers is only a wrapper on top of [aws/aws-php-sdk], it relies on the official SDK to authenticate client credentials. Please refer to the [official documentation] to find out how you specify credentials to the SDK
+
+The most commonly used credential supplying method is to use the **Profile**. You will need to setup a correct AWS profile as instructed below:
+
+Please prepare your `~/.aws/credentials` file with permission 600 and content like below:
 
 ```ini
 [tester]
@@ -30,6 +33,9 @@ aws_access_key_id = <YOUR AWS ACCESS KEY>
 aws_secret_access_key = <YOUR AWS SECRET>
 
 ```
+
+After that, you can specify the profile name when constructing a wrapped client object, e.g. `"profile" => "tester"`
+
 
 #### Policy Permission
 
@@ -44,3 +50,4 @@ When using AWS SDK, one thing that is overlooked most of the time is the policy 
 - [SQS](docs/SQS.md)
 
 [aws/aws-php-sdk]: https://github.com/aws/aws-sdk-php/ "Official Repository"
+[official documentation]: http://docs.aws.amazon.com/aws-sdk-php/v3/guide/guide/credentials.html "Official Documentation"
