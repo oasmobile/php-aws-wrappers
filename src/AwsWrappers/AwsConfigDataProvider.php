@@ -29,6 +29,7 @@ class AwsConfigDataProvider
             && !isset($data['profile'])
             && (!getenv('AWS_ACCESS_KEY_ID') || !getenv('AWS_SECRET_ACCESS_KEY'))
             && !getenv('AWS_SESSION_TOKEN')
+            && !(isset($data['iamrole']) && $data['iamrole'] == true)
         ) {
             throw new MandatoryValueMissingException("Credentials information not provided in the AWS config!");
         }

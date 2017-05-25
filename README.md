@@ -36,6 +36,9 @@ aws_secret_access_key = <YOUR AWS SECRET>
 
 After that, you can specify the profile name when constructing a wrapped client object, e.g. `"profile" => "tester"`
 
+> **NOTE**: you may also use the `"credentials"` parameter to make use of other authentication/authorization methods
+
+> **NOTE**: if your project runs on an EC2 server and use the IAM role of the EC2 server as authentication method, you can specify `"iamrole" => true` instead of giving `"profile"` or `"credentials"`
 
 #### Policy Permission
 
