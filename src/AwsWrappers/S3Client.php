@@ -13,9 +13,14 @@ class S3Client extends \Aws\S3\S3Client
     public function __construct(array $awsConfig)
     {
         if (!isset($awsConfig['endpoint']) && isset($awsConfig['region'])) {
-            $awsConfig['endpoint'] = preg_match('/^cn-.*/', $awsConfig['region']) ?
-                sprintf("https://s3.%s.amazonaws.com.cn", $awsConfig['region']) :
-                sprintf("https://s3-%s.amazonaws.com", $awsConfig['region']);
+            $awsConfig['endpoint'] =
+                \preg_match('/^cn-.*/', $awsConfig['region']) ?
+                    sprintf("https://s3.%s.amazonaws.com.cn", $awsConfig['region']) :
+                    (
+                    \preg_match('/^us-east-1$/', $awsConfig['region']) ?
+                        "http://s3.amazonaws.com" :
+                        sprintf("https://s3-%s.amazonaws.com", $awsConfig['region'])
+                    );
         }
         $dp = new AwsConfigDataProvider($awsConfig, '2006-03-01');
         parent::__construct($dp->getConfig());
