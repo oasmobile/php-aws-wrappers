@@ -4,12 +4,12 @@
     "type"        : "library",
     "require"     : {
         "aws/aws-sdk-php": "^3.22",
-        "oasis/logging"  : "^1.2",
+        "oasis/logging"  : "^1.3",
         "oasis/event"    : "^1.0"
     },
     "require-dev" : {
-        "phpunit/phpunit": "^5.7",
-        "league/uri": "^4.2"
+        "phpunit/phpunit"   : "^5.7",
+        "league/uri"        : "^4.2"
     },
     "license"     : "MIT",
     "authors"     : [
@@ -20,7 +20,8 @@
     ],
     "autoload"    : {
         "psr-4": {
-            "Oasis\\Mlib\\AwsWrappers\\": "src/AwsWrappers/"
+            "Oasis\\Mlib\\AwsWrappers\\": "src/AwsWrappers/",
+            "Oasis\\Mlib\\Logging\\"    : "src/Logging/"
         }
     },
     "autoload-dev": {

@@ -6,8 +6,10 @@
  * Date: 2015-12-04
  * Time: 17:16
  */
-use Oasis\Mlib\AwsWrappers\StsClient;
+use Oasis\Mlib\AwsWrappers\SnsPublisher;
+use Oasis\Mlib\Logging\AwsSnsHandler;
 use Oasis\Mlib\Logging\ConsoleHandler;
+use Oasis\Mlib\Logging\ShutdownFallbackHandler;
 
 require_once __DIR__ . "/vendor/autoload.php";
 
@@ -16,28 +18,18 @@ $aws = [
     'profile' => 'beijing-minhao',
     'region'  => 'cn-north-1',
 ];
-$sts = new StsClient($aws);
 
-$expires = time() + 1800;
-$expires = 1141889120;
-$s2s     = <<<STOS
-GET\n
-\n
-\n
-1175139620\n
+$publisher       = new SnsPublisher($aws, 'arn:aws-cn:sns:cn-north-1:341381255897:minhao-to-receive');
+$handler         = new AwsSnsHandler($publisher, 'something went wrong!');
+$fallbackHandler = new ShutdownFallbackHandler($handler);
+$fallbackHandler->install();
 
-/johnsmith/photos/puppy.jpg
-STOS;
+mdebug("ahaa");
+$a = function() {
+    mdebug("jjj");
+};
+$a();
 
-$sig = urlencode(
-    base64_encode(
-        hash_hmac(
-            'sha1',
-            $s2s,
-            'AKIAIOSFODNN7EXAMPLE',
-            true
-        )
-    )
-);
+$b->call();
+//malert('nonono');
 
-var_dump($sig);

@@ -12,8 +12,9 @@ use Symfony\Component\Yaml\Yaml;
  */
 class UTConfig
 {
-    public static $awsConfig      = [];
-    public static $awsApConfig    = [];
+    public static $awsConfig   = [];
+    public static $awsApConfig = [];
+    /** @var string[] */
     public static $dynamodbConfig = [];
     public static $sqsConfig      = [];
     
