@@ -8,6 +8,8 @@
 
 namespace Oasis\Mlib\AwsWrappers;
 
+use Aws\DoctrineCacheAdapter;
+use Doctrine\Common\Cache\FilesystemCache;
 use Oasis\Mlib\Utils\Exceptions\MandatoryValueMissingException;
 
 class AwsConfigDataProvider
@@ -22,6 +24,9 @@ class AwsConfigDataProvider
      */
     public function __construct(array $data, $version = null)
     {
+        if (!isset($data['region'])) {
+            throw new MandatoryValueMissingException("Region must be specified in the AWS config!");
+        }
         if (!isset($data['config']) && $version) {
             $data['version'] = $version;
         }
@@ -29,12 +34,9 @@ class AwsConfigDataProvider
             && !isset($data['profile'])
             && (!getenv('AWS_ACCESS_KEY_ID') || !getenv('AWS_SECRET_ACCESS_KEY'))
             && !getenv('AWS_SESSION_TOKEN')
-            //&& !(isset($data['iamrole']) && $data['iamrole'] == true)
+            && !(isset($data['iamrole']) && $data['iamrole'] != true)
         ) {
             throw new MandatoryValueMissingException("Credentials information not provided in the AWS config!");
-        }
-        if (!isset($data['region'])) {
-            throw new MandatoryValueMissingException("Region must be specified in the AWS config!");
         }
         if (isset($data['credentials']) && $data['credentials'] instanceof TemporaryCredential) {
             /** @var TemporaryCredential $tc */
@@ -44,6 +46,14 @@ class AwsConfigDataProvider
                 'secret' => $tc->secretAccessKey,
                 'token'  => $tc->sessionToken,
             ];
+        }
+        elseif (isset($data['iamrole'])) {
+            $cacheFile = $data['iamrole'];
+            if ($cacheFile === true) {
+                $cacheFile = \sys_get_temp_dir() . "/iam.role.cache";
+            }
+            $cacheAdapter              = new DoctrineCacheAdapter(new FilesystemCache($cacheFile));
+            $data['credentials.cache'] = $cacheAdapter;
         }
         
         $this->config = $data;
