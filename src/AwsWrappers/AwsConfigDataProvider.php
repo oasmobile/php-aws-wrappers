@@ -8,6 +8,7 @@
 
 namespace Oasis\Mlib\AwsWrappers;
 
+use Aws\Credentials\CredentialProvider;
 use Aws\DoctrineCacheAdapter;
 use Doctrine\Common\Cache\FilesystemCache;
 use Oasis\Mlib\Utils\Exceptions\MandatoryValueMissingException;
@@ -52,8 +53,8 @@ class AwsConfigDataProvider
             if ($cacheFile === true) {
                 $cacheFile = \sys_get_temp_dir() . "/iam.role.cache";
             }
-            $cacheAdapter              = new DoctrineCacheAdapter(new FilesystemCache($cacheFile));
-            $data['credentials.cache'] = $cacheAdapter;
+            $cacheAdapter        = new DoctrineCacheAdapter(new FilesystemCache($cacheFile));
+            $data['credentials'] = CredentialProvider::cache(CredentialProvider::defaultProvider(), $cacheAdapter);
         }
         
         $this->config = $data;
