@@ -47,7 +47,7 @@ class AwsConfigDataProvider
                 'token'  => $tc->sessionToken,
             ];
         }
-        elseif (isset($data['iamrole'])) {
+        elseif (isset($data['iamrole']) && $data['iamrole']) {
             $cacheFile = $data['iamrole'];
             if ($cacheFile === true) {
                 $cacheFile = \sys_get_temp_dir() . "/iam.role.cache";
