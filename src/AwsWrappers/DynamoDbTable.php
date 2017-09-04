@@ -61,16 +61,18 @@ class DynamoDbTable
     }
     
     public function batchDelete(array $objs,
-                                $concurrency = 10)
+                                $concurrency = 10,
+                                $maxDelay = 15000)
     {
-        $this->doBatchWrite(false, $objs, $concurrency);
+        $this->doBatchWrite(false, $objs, $concurrency, false, 0, $maxDelay);
     }
     
     public function batchGet(array $keys,
                              $isConsistentRead = false,
                              $concurrency = 10,
                              $keyIsTyped = false,
-                             $retryDelay = 0)
+                             $retryDelay = 0,
+                             $maxDelay = 15000)
     {
         $returnSet     = [];
         $promises      = [];
@@ -147,9 +149,13 @@ class DynamoDbTable
             $retryDelay = $retryDelay ? : 925;
             mdebug("sleeping $retryDelay ms");
             usleep($retryDelay * 1000);
+            $nextRetry = $retryDelay * 1.2;
+            if ($nextRetry > $maxDelay) {
+                $nextRetry = $maxDelay;
+            }
             $returnSet = array_merge(
                 $returnSet,
-                $this->batchGet($unprocessed, $isConsistentRead, $concurrency, true, $retryDelay * 2)
+                $this->batchGet($unprocessed, $isConsistentRead, $concurrency, true, $nextRetry)
             );
         }
         
@@ -158,9 +164,10 @@ class DynamoDbTable
     }
     
     public function batchPut(array $objs,
-                             $concurrency = 10)
+                             $concurrency = 10,
+                             $maxDelay = 15000)
     {
-        $this->doBatchWrite(true, $objs, $concurrency);
+        $this->doBatchWrite(true, $objs, $concurrency, false, 0, $maxDelay);
     }
     
     public function delete($keys)
@@ -600,8 +607,8 @@ class DynamoDbTable
             ]
         );
         
-        $end = time() + $timeshift;
-        $end -= $end % $period;
+        $end   = time() + $timeshift;
+        $end   -= $end % $period;
         $start = $end - $num_of_period * $period;
         
         $requestArgs = [
@@ -879,7 +886,8 @@ class DynamoDbTable
                                     array $objs,
                                     $concurrency = 10,
                                     $objIsTyped = false,
-                                    $retryDelay = 0)
+                                    $retryDelay = 0,
+                                    $maxDelay = 15000)
     {
         $promises    = [];
         $writes      = [];
@@ -955,9 +963,13 @@ class DynamoDbTable
         
         if ($unprocessed) {
             $retryDelay = $retryDelay ? : 925;
+            $nextRetry  = $retryDelay * 1.2;
+            if ($nextRetry > $maxDelay) {
+                $nextRetry = $maxDelay;
+            }
             mdebug("sleeping $retryDelay ms");
             usleep($retryDelay * 1000);
-            $this->doBatchWrite($isPut, $unprocessed, $concurrency, true, $retryDelay * 2);
+            $this->doBatchWrite($isPut, $unprocessed, $concurrency, true, $nextRetry);
         }
     }
 }
