@@ -68,12 +68,14 @@ class ScanCommandWrapper
                 }
                 else {
                     $items = isset($result['Items']) ? $result['Items'] : [];
+                    $ret   = 0;
                     foreach ($items as $typedItem) {
+                        $ret++;
                         $item = DynamoDbItem::createFromTypedArray($typedItem);
-                        call_user_func($callback, $item->toArray());
+                        if (false === call_user_func($callback, $item->toArray())) {
+                            break;
+                        }
                     }
-                    
-                    $ret = count($items);
                 }
             }
         );

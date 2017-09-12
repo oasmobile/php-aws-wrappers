@@ -47,7 +47,10 @@ class MultiQueryCommandWrapper
             $queue->push([$hashKeyValue, false]);
         }
         
+        $stopped = false;
+        
         $generator = function () use (
+            &$stopped,
             $dbClient,
             $tableName,
             $callback,
@@ -62,7 +65,7 @@ class MultiQueryCommandWrapper
             $isConsistentRead,
             $isAscendingOrder
         ) {
-            while (!$queue->isEmpty()) {
+            while (!$stopped && !$queue->isEmpty()) {
                 list($hashKeyValue, $lastKey) = $queue->shift();
                 if ($lastKey === null) {
                     //minfo("Finished for hash key %s", $hashKeyValue);
@@ -89,17 +92,20 @@ class MultiQueryCommandWrapper
             }
         };
         
-        while (!$queue->isEmpty()) {
+        while (!$stopped && !$queue->isEmpty()) {
             /** @noinspection PhpUnusedParameterInspection */
             \GuzzleHttp\Promise\each_limit(
                 $generator(),
                 $concurrency,
-                function (Result $result, $hashKeyValue) use ($callback, $queue) {
+                function (Result $result, $hashKeyValue) use ($callback, $queue, &$stopped) {
                     $lastKey = isset($result['LastEvaluatedKey']) ? $result['LastEvaluatedKey'] : null;
                     $items   = isset($result['Items']) ? $result['Items'] : [];
                     foreach ($items as $typedItem) {
                         $item = DynamoDbItem::createFromTypedArray($typedItem);
-                        call_user_func($callback, $item->toArray());
+                        if (false === call_user_func($callback, $item->toArray())) {
+                            $stopped = true;
+                            break;
+                        }
                     }
                     $queue->push([$hashKeyValue, $lastKey]);
                 }

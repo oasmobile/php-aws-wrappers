@@ -323,7 +323,7 @@ class DynamoDbTable
             $fieldsMapping,
             $paramsMapping,
             $indexName,
-            10000,
+            1000,
             $isConsistentRead,
             $isAscendingOrder,
             $parallel,
@@ -399,7 +399,7 @@ class DynamoDbTable
                 $indexName,
                 $filterExpression,
                 $lastKey,
-                10000,
+                1000,
                 $isConsistentRead,
                 $isAscendingOrder,
                 false
@@ -505,7 +505,7 @@ class DynamoDbTable
                 $paramsMapping,
                 $indexName,
                 $lastKey,
-                10000,
+                1000,
                 $isConsistentRead,
                 $isAscendingOrder,
                 false

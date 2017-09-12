@@ -94,10 +94,12 @@ class ParallelScanCommandWrapper
                             }
                             else {
                                 $items = isset($result['Items']) ? $result['Items'] : [];
+                                //\mdebug("Total items = %d, seg = %d", count($items), $i);
                                 foreach ($items as $typedItem) {
                                     $item = DynamoDbItem::createFromTypedArray($typedItem);
                                     if (false === call_user_func($callback, $item->toArray(), $i)) {
                                         $stoppedByCallback = true;
+                                        break;
                                     }
                                 }
                                 

@@ -338,6 +338,28 @@ class DynamoDbTableTest extends \PHPUnit_Framework_TestCase
             ["#city" => "city", "#code" => "code"],
             [":city" => "shanghai", ":min" => 103]
         );
+        $this->assertEquals(0, count($expectedMayors));
+        $expectedMayors = [
+            "ye",
+            "lee",
+            "wang",
+        ];
+        $this->table->scanAndRun(
+            function ($item) use (&$expectedMayors) {
+                $expectedMayor = array_shift($expectedMayors);
+                $this->assertEquals($expectedMayor, $item['mayor']);
+                if ($item['mayor'] == "lee") {
+                    return false;
+                }
+                
+                return true;
+            },
+            "#city = :city AND #code > :min",
+            ["#city" => "city", "#code" => "code"],
+            [":city" => "shanghai", ":min" => 103]
+        );
+        $this->assertEquals(1, count($expectedMayors));
+        
     }
     
     /**
@@ -363,6 +385,20 @@ class DynamoDbTableTest extends \PHPUnit_Framework_TestCase
             [":city" => "shanghai", ":min" => 100, ":max" => 108],
             "city-code-index"
         );
+        
+        $this->table->parallelScanAndRun(
+            3,
+            function () use (&$visited) {
+                $visited++;
+                
+                return false;
+            },
+            "#city = :city AND (#code BETWEEN :min AND :max)",
+            ["#city" => "city", "#code" => "code"],
+            [":city" => "shanghai", ":min" => 100, ":max" => 108],
+            "city-code-index"
+        );
+        $this->assertEquals(1, $visited);
     }
     
 }
