@@ -52,7 +52,7 @@ class ScanAsyncCommandWrapper
             'ScanIndexForward' => $isAscendingOrder,
         ];
         if ($countOnly) {
-            $requestArgs['SELECT'] = "COUNT";
+            $requestArgs['Select'] = "COUNT";
         }
         if ($totalSegments > 1) {
             $requestArgs['Segment']       = $segment;

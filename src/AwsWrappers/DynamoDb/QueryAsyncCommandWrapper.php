@@ -50,7 +50,7 @@ class QueryAsyncCommandWrapper
             "ScanIndexForward" => $isAscendingOrder,
         ];
         if ($countOnly) {
-            $requestArgs['SELECT'] = "COUNT";
+            $requestArgs['Select'] = "COUNT";
         }
         if ($keyConditions) {
             $requestArgs['KeyConditionExpression'] = $keyConditions;
