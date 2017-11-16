@@ -28,6 +28,7 @@ class QueryAsyncCommandWrapper
      * @param                $isConsistentRead
      * @param                $isAscendingOrder
      * @param                $countOnly
+     * @param array          $projectedFields
      *
      * @return PromiseInterface
      */
@@ -42,7 +43,8 @@ class QueryAsyncCommandWrapper
                       $evaluationLimit,
                       $isConsistentRead,
                       $isAscendingOrder,
-                      $countOnly)
+                      $countOnly,
+                      $projectedFields)
     {
         $requestArgs = [
             "TableName"        => $tableName,
@@ -51,6 +53,10 @@ class QueryAsyncCommandWrapper
         ];
         if ($countOnly) {
             $requestArgs['Select'] = "COUNT";
+        }
+        elseif ($projectedFields) {
+            $requestArgs['Select']               = "SPECIFIC_ATTRIBUTES";
+            $requestArgs['ProjectionExpression'] = \implode($projectedFields, ', ');
         }
         if ($keyConditions) {
             $requestArgs['KeyConditionExpression'] = $keyConditions;

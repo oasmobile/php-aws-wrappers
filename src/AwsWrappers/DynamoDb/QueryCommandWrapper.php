@@ -27,6 +27,7 @@ class QueryCommandWrapper
      * @param                $isConsistentRead
      * @param                $isAscendingOrder
      * @param                $countOnly
+     * @param array          $projectedFields
      *
      * @return array|bool
      */
@@ -42,7 +43,8 @@ class QueryCommandWrapper
                       $evaluationLimit,
                       $isConsistentRead,
                       $isAscendingOrder,
-                      $countOnly)
+                      $countOnly,
+                      $projectedFields)
     {
         $asyncWrapper = new QueryAsyncCommandWrapper();
         
@@ -58,7 +60,8 @@ class QueryCommandWrapper
             $evaluationLimit,
             $isConsistentRead,
             $isAscendingOrder,
-            $countOnly
+            $countOnly,
+            $projectedFields
         );
         $result  = $promise->wait();
         $lastKey = isset($result['LastEvaluatedKey']) ? $result['LastEvaluatedKey'] : null;

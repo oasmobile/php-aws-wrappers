@@ -28,7 +28,8 @@ class MultiQueryCommandWrapper
                       $evaluationLimit,
                       $isConsistentRead,
                       $isAscendingOrder,
-                      $concurrency
+                      $concurrency,
+                      $projectedFields
     )
     {
         $fieldsMapping["#" . $hashKeyName] = $hashKeyName;
@@ -63,7 +64,8 @@ class MultiQueryCommandWrapper
             $filterExpression,
             $evaluationLimit,
             $isConsistentRead,
-            $isAscendingOrder
+            $isAscendingOrder,
+            $projectedFields
         ) {
             while (!$stopped && !$queue->isEmpty()) {
                 list($hashKeyValue, $lastKey) = $queue->shift();
@@ -85,7 +87,8 @@ class MultiQueryCommandWrapper
                     $evaluationLimit,
                     $isConsistentRead,
                     $isAscendingOrder,
-                    false
+                    false,
+                    $projectedFields
                 );
                 //mdebug("yielded %s", \GuzzleHttp\json_encode($paramsMapping));
                 yield $hashKeyValue => $promise;
@@ -110,7 +113,9 @@ class MultiQueryCommandWrapper
                     $queue->push([$hashKeyValue, $lastKey]);
                 }
                 ,
-                function (DynamoDbException $reason, $hashKeyValue) {
+                function (DynamoDbException $reason,
+                    /** @noinspection PhpUnusedParameterInspection */
+                          $hashKeyValue) {
                     //mtrace($reason, "Error while processing hash key $hashKeyValue");
                     throw $reason;
                 }

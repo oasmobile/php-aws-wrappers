@@ -282,7 +282,8 @@ class DynamoDbTable
                                      $evaluationLimit = 30,
                                      $isConsistentRead = false,
                                      $isAscendingOrder = true,
-                                     $concurrency = 10
+                                     $concurrency = 10,
+                                     $projectedFields = []
     )
     {
         $wrapper = new MultiQueryCommandWrapper();
@@ -300,7 +301,8 @@ class DynamoDbTable
             $evaluationLimit,
             $isConsistentRead,
             $isAscendingOrder,
-            $concurrency
+            $concurrency,
+            $projectedFields
         );
     }
     
@@ -341,7 +343,8 @@ class DynamoDbTable
                           &$lastKey = null,
                           $evaluationLimit = 30,
                           $isConsistentRead = false,
-                          $isAscendingOrder = true
+                          $isAscendingOrder = true,
+                          $projectedFields = []
     )
     {
         $wrapper = new QueryCommandWrapper();
@@ -362,7 +365,8 @@ class DynamoDbTable
             $evaluationLimit,
             $isConsistentRead,
             $isAscendingOrder,
-            false
+            false,
+            $projectedFields
         );
         
         return $ret;
@@ -375,7 +379,8 @@ class DynamoDbTable
                                 $indexName = DynamoDbIndex::PRIMARY_INDEX,
                                 $filterExpression = '',
                                 $isConsistentRead = false,
-                                $isAscendingOrder = true)
+                                $isAscendingOrder = true,
+                                $projectedFields = [])
     {
         $lastKey           = null;
         $stoppedByCallback = false;
@@ -404,7 +409,8 @@ class DynamoDbTable
                 1000,
                 $isConsistentRead,
                 $isAscendingOrder,
-                false
+                false,
+                $projectedFields
             );
         } while ($lastKey != null && !$stoppedByCallback);
     }
@@ -436,7 +442,8 @@ class DynamoDbTable
                 10000, // max size of a query is 1MB of data, a limit of 10k for items with a typical size of 100B
                 $isConsistentRead,
                 $isAscendingOrder,
-                true
+                true,
+                []
             );
         } while ($lastKey != null);
         

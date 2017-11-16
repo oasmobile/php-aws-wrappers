@@ -402,9 +402,9 @@ class DynamoDbTableTest extends \PHPUnit_Framework_TestCase
     }
     
     /**
-     * @testBatchPut
+     * @depends testBatchPut
      */
-    public function testProjectedFields()
+    public function testProjectedFieldsScan()
     {
         $result = $this->table->scan(
             '#id > :id',
@@ -432,6 +432,45 @@ class DynamoDbTableTest extends \PHPUnit_Framework_TestCase
             ["#id" => "id", "#city" => "city"],
             [":id" => 10],
             DynamoDbIndex::PRIMARY_INDEX,
+            true,
+            true,
+            ["#id", "#city"]
+        );
+    }
+    
+    /**
+     * @depends testBatchPut
+     */
+    public function testProjectedFieldsQuery()
+    {
+        $result = $this->table->query(
+            '#id = :id',
+            ["#id" => "id", "#city" => "city"],
+            [":id" => 10],
+            DynamoDbIndex::PRIMARY_INDEX,
+            '',
+            $lastKey,
+            30,
+            true,
+            true,
+            ["#id", "#city"]
+        );
+        foreach ($result as $item) {
+            $this->assertArrayHasKey('id', $item);
+            $this->assertArrayHasKey('city', $item, \GuzzleHttp\json_encode($item));
+            $this->assertArrayNotHasKey('code', $item);
+        }
+        $this->table->queryAndRun(
+            function ($item) {
+                $this->assertArrayHasKey('id', $item);
+                $this->assertArrayHasKey('city', $item, \GuzzleHttp\json_encode($item));
+                $this->assertArrayNotHasKey('code', $item);
+            },
+            '#id = :id',
+            ["#id" => "id", "#city" => "city"],
+            [":id" => 10],
+            DynamoDbIndex::PRIMARY_INDEX,
+            '',
             true,
             true,
             ["#id", "#city"]
