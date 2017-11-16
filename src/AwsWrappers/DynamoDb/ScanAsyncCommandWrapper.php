@@ -28,6 +28,7 @@ class ScanAsyncCommandWrapper
      * @param                $segment
      * @param                $totalSegments
      * @param                $countOnly
+     * @param array          $projectedFields
      *
      * @return \GuzzleHttp\Promise\Promise
      */
@@ -43,7 +44,8 @@ class ScanAsyncCommandWrapper
                       $isAscendingOrder,
                       $segment,
                       $totalSegments,
-                      $countOnly
+                      $countOnly,
+                      $projectedFields
     )
     {
         $requestArgs = [
@@ -53,6 +55,10 @@ class ScanAsyncCommandWrapper
         ];
         if ($countOnly) {
             $requestArgs['Select'] = "COUNT";
+        }
+        elseif ($projectedFields) {
+            $requestArgs['Select']               = "SPECIFIC_ATTRIBUTES";
+            $requestArgs['ProjectionExpression'] = \implode($projectedFields, ', ');
         }
         if ($totalSegments > 1) {
             $requestArgs['Segment']       = $segment;

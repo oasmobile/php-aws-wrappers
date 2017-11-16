@@ -16,7 +16,7 @@ use Oasis\Mlib\AwsWrappers\DynamoDbTable;
 
 class DynamoDbTableTest extends \PHPUnit_Framework_TestCase
 {
-    const DEBUG = 0;
+    const DEBUG = 1;
     protected static $tableName;
     
     /** @var  DynamoDbTable */
@@ -399,6 +399,43 @@ class DynamoDbTableTest extends \PHPUnit_Framework_TestCase
             "city-code-index"
         );
         $this->assertEquals(1, $visited);
+    }
+    
+    /**
+     * @testBatchPut
+     */
+    public function testProjectedFields()
+    {
+        $result = $this->table->scan(
+            '#id > :id',
+            ["#id" => "id", "#city" => "city"],
+            [":id" => 10],
+            DynamoDbIndex::PRIMARY_INDEX,
+            $lastKey,
+            30,
+            true,
+            true,
+            ["#id", "#city"]
+        );
+        foreach ($result as $item) {
+            $this->assertArrayHasKey('id', $item);
+            $this->assertArrayHasKey('city', $item, \GuzzleHttp\json_encode($item));
+            $this->assertArrayNotHasKey('code', $item);
+        }
+        $this->table->scanAndRun(
+            function ($item) {
+                $this->assertArrayHasKey('id', $item);
+                $this->assertArrayHasKey('city', $item, \GuzzleHttp\json_encode($item));
+                $this->assertArrayNotHasKey('code', $item);
+            },
+            '#id > :id',
+            ["#id" => "id", "#city" => "city"],
+            [":id" => 10],
+            DynamoDbIndex::PRIMARY_INDEX,
+            true,
+            true,
+            ["#id", "#city"]
+        );
     }
     
 }

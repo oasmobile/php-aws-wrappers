@@ -27,6 +27,7 @@ class ScanCommandWrapper
      * @param                $isConsistentRead
      * @param                $isAscendingOrder
      * @param                $countOnly
+     * @param array          $projectedAttributes
      *
      * @return int
      */
@@ -41,7 +42,8 @@ class ScanCommandWrapper
                       $evaluationLimit,
                       $isConsistentRead,
                       $isAscendingOrder,
-                      $countOnly
+                      $countOnly,
+                      $projectedAttributes
     )
     {
         $asyncCommandWrapper = new ScanAsyncCommandWrapper();
@@ -58,7 +60,8 @@ class ScanCommandWrapper
             $isAscendingOrder,
             0,
             1,
-            $countOnly
+            $countOnly,
+            $projectedAttributes
         );
         $promise->then(
             function (Result $result) use (&$lastKey, &$ret, $callback, $countOnly) {

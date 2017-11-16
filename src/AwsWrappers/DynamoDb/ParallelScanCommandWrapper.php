@@ -27,6 +27,7 @@ class ParallelScanCommandWrapper
      * @param                $isAscendingOrder
      * @param                $totalSegments
      * @param                $countOnly
+     * @param array          $projectedAttributes
      *
      * @return int
      */
@@ -41,7 +42,8 @@ class ParallelScanCommandWrapper
                       $isConsistentRead,
                       $isAscendingOrder,
                       $totalSegments,
-                      $countOnly
+                      $countOnly,
+                      $projectedAttributes
     )
     {
         $ret               = 0;
@@ -70,7 +72,8 @@ class ParallelScanCommandWrapper
                         $isAscendingOrder,
                         $i,
                         $totalSegments,
-                        $countOnly
+                        $countOnly,
+                        $projectedAttributes
                     );
                     $promise->then(
                         function (Result $result) use (

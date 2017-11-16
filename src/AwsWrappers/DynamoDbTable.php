@@ -311,7 +311,8 @@ class DynamoDbTable
                                        array $paramsMapping = [],
                                        $indexName = DynamoDbIndex::PRIMARY_INDEX,
                                        $isConsistentRead = false,
-                                       $isAscendingOrder = true)
+                                       $isAscendingOrder = true,
+                                       $projectedFields = [])
     {
         $wrapper = new ParallelScanCommandWrapper();
         
@@ -327,7 +328,8 @@ class DynamoDbTable
             $isConsistentRead,
             $isAscendingOrder,
             $parallel,
-            false
+            false,
+            $projectedFields
         );
     }
     
@@ -448,7 +450,8 @@ class DynamoDbTable
                          &$lastKey = null,
                          $evaluationLimit = 30,
                          $isConsistentRead = false,
-                         $isAscendingOrder = true
+                         $isAscendingOrder = true,
+                         $projectedFields = []
     )
     {
         $wrapper = new ScanCommandWrapper();
@@ -468,7 +471,8 @@ class DynamoDbTable
             $evaluationLimit,
             $isConsistentRead,
             $isAscendingOrder,
-            false
+            false,
+            $projectedFields
         );
         
         return $ret;
@@ -480,7 +484,8 @@ class DynamoDbTable
                                array $paramsMapping = [],
                                $indexName = DynamoDbIndex::PRIMARY_INDEX,
                                $isConsistentRead = false,
-                               $isAscendingOrder = true)
+                               $isAscendingOrder = true,
+                               $projectedFields = [])
     {
         $lastKey           = null;
         $stoppedByCallback = false;
@@ -508,7 +513,8 @@ class DynamoDbTable
                 1000,
                 $isConsistentRead,
                 $isAscendingOrder,
-                false
+                false,
+                $projectedFields
             );
         } while ($lastKey != null && !$stoppedByCallback);
     }
@@ -537,7 +543,8 @@ class DynamoDbTable
             $isConsistentRead,
             true,
             $parallel,
-            true
+            true,
+            []
         );
     }
     
