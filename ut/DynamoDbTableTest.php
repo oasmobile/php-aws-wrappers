@@ -16,7 +16,7 @@ use Oasis\Mlib\AwsWrappers\DynamoDbTable;
 
 class DynamoDbTableTest extends \PHPUnit_Framework_TestCase
 {
-    const DEBUG = 1;
+    const DEBUG = 0;
     protected static $tableName;
     
     /** @var  DynamoDbTable */
@@ -140,6 +140,15 @@ class DynamoDbTableTest extends \PHPUnit_Framework_TestCase
         $result = $this->table->batchGet($keys);
         $this->assertTrue(is_array($result));
         $this->assertEquals(10, count($result));
+    }
+    
+    public function testProjectedBatchGet()
+    {
+        $result = $this->table->batchGet([['id' => 10], ['id' => 11]], true, 10, ['city']);
+        foreach ($result as $item) {
+            $this->assertArrayHasKey('city', $item);
+            $this->assertArrayNotHasKey('id', $item);
+        }
     }
     
     /**

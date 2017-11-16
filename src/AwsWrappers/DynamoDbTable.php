@@ -70,15 +70,29 @@ class DynamoDbTable
     public function batchGet(array $keys,
                              $isConsistentRead = false,
                              $concurrency = 10,
+                             $projectedFields = [],
                              $keyIsTyped = false,
                              $retryDelay = 0,
-                             $maxDelay = 15000)
+                             $maxDelay = 15000
+    )
     {
+        $mappingArgs = [];
+        if ($projectedFields) {
+            $fieldsMapping = [];
+            foreach ($projectedFields as $idx => $field) {
+                $projectedFields[$idx]   = $escaped = '#' . $field;
+                $fieldsMapping[$escaped] = $field;
+            }
+            $mappingArgs['ProjectionExpression']     = \implode($projectedFields, ', ');
+            $mappingArgs['ExpressionAttributeNames'] = $fieldsMapping;
+        }
+        
         $returnSet     = [];
         $promises      = [];
         $reads         = [];
         $unprocessed   = [];
         $flushCallback = function ($limit = 100) use (
+            &$mappingArgs,
             &$promises,
             &$reads,
             &$unprocessed,
@@ -88,10 +102,13 @@ class DynamoDbTable
             if (count($reads) >= $limit) {
                 $reqArgs    = [
                     "RequestItems" => [
-                        $this->tableName => [
-                            "Keys"           => $reads,
-                            "ConsistentRead" => $isConsistentRead,
-                        ],
+                        $this->tableName => \array_merge(
+                            $mappingArgs,
+                            [
+                                "Keys"           => $reads,
+                                "ConsistentRead" => $isConsistentRead,
+                            ]
+                        ),
                     ],
                     //"ReturnConsumedCapacity" => "TOTAL",
                 ];
@@ -155,7 +172,7 @@ class DynamoDbTable
             }
             $returnSet = array_merge(
                 $returnSet,
-                $this->batchGet($unprocessed, $isConsistentRead, $concurrency, true, $nextRetry)
+                $this->batchGet($unprocessed, $isConsistentRead, $concurrency, $projectedFields, true, $nextRetry)
             );
         }
         
