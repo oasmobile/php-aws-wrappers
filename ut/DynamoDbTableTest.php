@@ -80,6 +80,9 @@ class DynamoDbTableTest extends \PHPUnit_Framework_TestCase
         $this->table->set($obj);
         $result = $this->table->get(['id' => 1]);
         $this->assertEquals($obj, $result);
+        $result = $this->table->get(['id' => 1], true, ['name']);
+        $this->assertArrayHasKey('name', $result);
+        $this->assertArrayNotHasKey('id', $result);
     }
     
     public function testBacthDelete()
@@ -408,14 +411,14 @@ class DynamoDbTableTest extends \PHPUnit_Framework_TestCase
     {
         $result = $this->table->scan(
             '#id > :id',
-            ["#id" => "id", "#city" => "city"],
+            ["#id" => "id"],
             [":id" => 10],
             DynamoDbIndex::PRIMARY_INDEX,
             $lastKey,
             30,
             true,
             true,
-            ["#id", "#city"]
+            ["id", "city"]
         );
         foreach ($result as $item) {
             $this->assertArrayHasKey('id', $item);
@@ -434,7 +437,7 @@ class DynamoDbTableTest extends \PHPUnit_Framework_TestCase
             DynamoDbIndex::PRIMARY_INDEX,
             true,
             true,
-            ["#id", "#city"]
+            ["id", "city"]
         );
     }
     
@@ -445,7 +448,7 @@ class DynamoDbTableTest extends \PHPUnit_Framework_TestCase
     {
         $result = $this->table->query(
             '#id = :id',
-            ["#id" => "id", "#city" => "city"],
+            [],
             [":id" => 10],
             DynamoDbIndex::PRIMARY_INDEX,
             '',
@@ -453,7 +456,7 @@ class DynamoDbTableTest extends \PHPUnit_Framework_TestCase
             30,
             true,
             true,
-            ["#id", "#city"]
+            ["id", "city"]
         );
         foreach ($result as $item) {
             $this->assertArrayHasKey('id', $item);
@@ -467,13 +470,13 @@ class DynamoDbTableTest extends \PHPUnit_Framework_TestCase
                 $this->assertArrayNotHasKey('code', $item);
             },
             '#id = :id',
-            ["#id" => "id", "#city" => "city"],
+            [],
             [":id" => 10],
             DynamoDbIndex::PRIMARY_INDEX,
             '',
             true,
             true,
-            ["#id", "#city"]
+            ["id", "city"]
         );
     }
     

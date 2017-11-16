@@ -55,7 +55,16 @@ class QueryAsyncCommandWrapper
             $requestArgs['Select'] = "COUNT";
         }
         elseif ($projectedFields) {
-            $requestArgs['Select']               = "SPECIFIC_ATTRIBUTES";
+            $requestArgs['Select'] = "SPECIFIC_ATTRIBUTES";
+            foreach ($projectedFields as $idx => $field) {
+                $projectedFields[$idx] = $escaped = '#' . $field;
+                if (\array_key_exists($escaped, $fieldsMapping) && $fieldsMapping[$escaped] != $field) {
+                    throw new \InvalidArgumentException(
+                        "Field $field is used in projected fields and should not appear in fields mapping!"
+                    );
+                }
+                $fieldsMapping[$escaped] = $field;
+            }
             $requestArgs['ProjectionExpression'] = \implode($projectedFields, ', ');
         }
         if ($keyConditions) {

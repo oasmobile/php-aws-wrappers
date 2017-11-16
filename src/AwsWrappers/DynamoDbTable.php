@@ -234,13 +234,22 @@ class DynamoDbTable
         $this->dbClient->updateTable($args);
     }
     
-    public function get(array $keys, $is_consistent_read = false)
+    public function get(array $keys, $is_consistent_read = false, $projectedFields = [])
     {
         $keyItem     = DynamoDbItem::createFromArray($keys, $this->attributeTypes);
         $requestArgs = [
             "TableName" => $this->tableName,
             "Key"       => $keyItem->getData(),
         ];
+        if ($projectedFields) {
+            $fieldsMapping = [];
+            foreach ($projectedFields as $idx => $field) {
+                $projectedFields[$idx]   = $escaped = '#' . $field;
+                $fieldsMapping[$escaped] = $field;
+            }
+            $requestArgs['ProjectionExpression']     = \implode($projectedFields, ', ');
+            $requestArgs['ExpressionAttributeNames'] = $fieldsMapping;
+        }
         if ($is_consistent_read) {
             $requestArgs["ConsistentRead"] = true;
         }
