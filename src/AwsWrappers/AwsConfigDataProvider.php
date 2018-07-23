@@ -54,7 +54,7 @@ class AwsConfigDataProvider
                 $cacheFile = \sys_get_temp_dir() . "/iam.role.cache";
             }
             $cacheAdapter        = new DoctrineCacheAdapter(new FilesystemCache($cacheFile));
-            $data['credentials'] = CredentialProvider::cache(CredentialProvider::defaultProvider(), $cacheAdapter);
+            $data['credentials'] = CredentialProvider::cache(CredentialProvider::ecsCredentials(), $cacheAdapter);
         }
         
         $this->config = $data;
