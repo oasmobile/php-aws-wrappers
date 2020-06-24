@@ -98,6 +98,10 @@ class DynamoDbItem implements \ArrayAccess
         
         switch ($type) {
             case self::ATTRIBUTE_TYPE_STRING: {
+                if(is_object($v)) {
+                    return [$type => (serialize($v))];
+                }
+
                 if (strlen(strval($v))) {
                     return [$type => strval($v)];
                 }
@@ -143,6 +147,10 @@ class DynamoDbItem implements \ArrayAccess
                 return [$type => $children];
             }
                 break;
+
+            case 'object':
+                return [self::ATTRIBUTE_TYPE_STRING => (serialize($v))];
+
             default: {
                 $const_key = __CLASS__ . "::ATTRIBUTE_TYPE_" . strtoupper($type);
                 if (defined($const_key)) {
