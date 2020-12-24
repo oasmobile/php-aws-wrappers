@@ -11,10 +11,11 @@ namespace Oasis\Mlib\AwsWrappers;
 use Aws\Result;
 use Aws\Sqs\Exception\SqsException;
 use Aws\Sqs\SqsClient;
+use Oasis\Mlib\AwsWrappers\Contracts\QueueInterface;
 use Oasis\Mlib\Event\EventDispatcherInterface;
 use Oasis\Mlib\Event\EventDispatcherTrait;
 
-class SqsQueue implements EventDispatcherInterface
+class SqsQueue implements EventDispatcherInterface,QueueInterface
 {
     use EventDispatcherTrait;
     
@@ -90,8 +91,11 @@ class SqsQueue implements EventDispatcherInterface
         $result    = $this->client->createQueue($args);
         $this->url = $result['QueueUrl'];
     }
-    
-    public function deleteMessage(SqsReceivedMessage $msg)
+
+    /**
+     * @param  SqsReceivedMessage  $msg
+     */
+    public function deleteMessage($msg)
     {
         $this->client->deleteMessage(
             [
