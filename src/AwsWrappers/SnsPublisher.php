@@ -9,8 +9,9 @@
 namespace Oasis\Mlib\AwsWrappers;
 
 use Aws\Sns\SnsClient;
+use Oasis\Mlib\AwsWrappers\Contracts\PublisherInterface;
 
-class SnsPublisher
+class SnsPublisher implements PublisherInterface
 {
     const CHANNEL_EMAIL             = "email";
     const CHANNEL_SQS               = "sqs";

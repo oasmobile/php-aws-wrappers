@@ -8,10 +8,11 @@
 
 namespace Oasis\Mlib\AwsWrappers;
 
+use Oasis\Mlib\AwsWrappers\Contracts\QueueMessageInterface;
 use Oasis\Mlib\Utils\ArrayDataProvider;
 use Oasis\Mlib\Utils\StringUtils;
 
-class SqsReceivedMessage extends SqsMessage
+class SqsReceivedMessage extends SqsMessage implements QueueMessageInterface
 {
     protected $messageId;
     protected $receiptHandle;
