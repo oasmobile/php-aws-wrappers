@@ -22,15 +22,12 @@ class DynamoDbTable
     /** @var DynamoDbClient */
     protected $dbClient;
     
-    protected $config;
-    
     protected $tableName;
     protected $attributeTypes = [];
     
-    function __construct(array $awsConfig, $tableName, $attributeTypes = [])
+    function __construct(DynamoDbClient $dbClient, $tableName, $attributeTypes = [])
     {
-        $dp                   = new AwsConfigDataProvider($awsConfig, '2012-08-10');
-        $this->dbClient       = new DynamoDbClient($dp->getConfig());
+        $this->dbClient       = $dbClient;
         $this->tableName      = $tableName;
         $this->attributeTypes = $attributeTypes;
     }
@@ -641,8 +638,8 @@ class DynamoDbTable
     {
         $cloudwatch = new CloudWatchClient(
             [
-                "profile" => $this->config['profile'],
-                "region"  => $this->config['region'],
+                "profile" => $this->dbClient->getConfig('profile'),
+                "region"  => $this->dbClient->getConfig('region'),
                 "version" => "2010-08-01",
             ]
         );

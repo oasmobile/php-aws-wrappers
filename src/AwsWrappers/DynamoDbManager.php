@@ -13,15 +13,12 @@ use Aws\Result;
 
 class DynamoDbManager
 {
-    /** @var array */
-    protected $config;
-    /** @var  DynamoDbClient */
+    /** @var DynamoDbClient */
     protected $db;
-    
-    public function __construct(array $awsConfig)
+
+    public function __construct(DynamoDbClient $dbClient)
     {
-        $dp       = new AwsConfigDataProvider($awsConfig, '2012-08-10');
-        $this->db = new DynamoDbClient($dp->getConfig());
+        $this->db = $dbClient;
     }
     
     /**
