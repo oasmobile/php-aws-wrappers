@@ -8,55 +8,55 @@
 
 ## Tasks
 
-- [ ] 1. Phase 1-A: 补齐 DynamoDB 模块纯单元测试（PHPUnit 5.7 API，PHP 7.4 运行）
-  - [ ] 1.1 创建 `ut/unit/` 目录结构，更新 `phpunit.xml` 添加 unit test suite
+- [x] 1. Phase 1-A: 补齐 DynamoDB 模块纯单元测试（PHPUnit 5.7 API，PHP 7.4 运行）
+  - [x] 1.1 创建 `ut/unit/` 目录结构，更新 `phpunit.xml` 添加 unit test suite
     - 创建 `ut/unit/` 和 `ut/unit/DynamoDb/` 目录
     - 在 `phpunit.xml` 中新增 `unit` test suite 指向 `ut/unit/`，保留现有 `basic` suite
     - 更新 `composer.json` autoload-dev 添加 `ut/unit/` 的 PSR-4 映射
     - 验证空 suite 可运行：`php74 vendor/bin/phpunit --testsuite unit`
     - _Requirements: 1.1, 1.3_
-  - [ ] 1.2 编写 `DynamoDbItem` 纯单元测试
+  - [x] 1.2 编写 `DynamoDbItem` 纯单元测试
     - 创建 `ut/unit/DynamoDbItemTest.php`，使用 PHPUnit 5.7 API（`\PHPUnit_Framework_TestCase`）
     - 覆盖：`createFromArray`、`createFromTypedArray`、`toArray`、`getData`、`ArrayAccess` 接口、各类型转换（S/N/BOOL/NULL/L/M/B）、边界值（空字符串→NULL、非数字→"0"、嵌套结构）、异常路径（`InvalidDataTypeException`、`RuntimeException`）
     - _Requirements: 1.1, 1.2, 1.4_
-  - [ ] 1.3 编写 `DynamoDbIndex` 纯单元测试
+  - [x] 1.3 编写 `DynamoDbIndex` 纯单元测试
     - 创建 `ut/unit/DynamoDbIndexTest.php`
     - 覆盖：构造函数、`getName` 自动生成逻辑、`equals` 比较、`getKeySchema`、`getProjection`
     - _Requirements: 1.1, 1.2, 1.4_
-  - [ ] 1.4 编写 `DynamoDbManager` 纯单元测试（mock `DynamoDbClient`）
+  - [x] 1.4 编写 `DynamoDbManager` 纯单元测试（mock `DynamoDbClient`）
     - 创建 `ut/unit/DynamoDbManagerTest.php`
     - Mock `Aws\DynamoDb\DynamoDbClient`，覆盖：`listTables`（含分页 mock）、`createTable`、`deleteTable`、`waitForTableActive`/`waitForTableNotExists`
     - _Requirements: 1.1, 1.2, 1.4_
-  - [ ] 1.5 编写 `DynamoDbTable` 纯单元测试（mock `DynamoDbClient`）
+  - [x] 1.5 编写 `DynamoDbTable` 纯单元测试（mock `DynamoDbClient`）
     - 创建 `ut/unit/DynamoDbTableTest.php`
     - Mock `Aws\DynamoDb\DynamoDbClient`，覆盖：`get`/`set`/`delete`（单项操作）、`batchGet`/`batchPut`/`batchDelete`（批量操作）、`query`/`scan` 委托到 Command Wrapper、`describe`、GSI 管理、Stream 操作
     - _Requirements: 1.1, 1.2, 1.4_
-  - [ ] 1.6 编写 6 个 DynamoDb Command Wrapper 纯单元测试
+  - [x] 1.6 编写 6 个 DynamoDb Command Wrapper 纯单元测试
     - 创建 `ut/unit/DynamoDb/` 下 6 个测试文件：`MultiQueryCommandWrapperTest.php`、`ParallelScanCommandWrapperTest.php`、`QueryAsyncCommandWrapperTest.php`、`QueryCommandWrapperTest.php`、`ScanAsyncCommandWrapperTest.php`、`ScanCommandWrapperTest.php`
     - 覆盖：参数构建、回调处理、分页/并发逻辑
     - _Requirements: 1.1, 1.2, 1.4_
-  - [ ] 1.7 Checkpoint: 运行 `php74 vendor/bin/phpunit --testsuite unit` 确认 DynamoDB 模块全部测试通过，commit
+  - [x] 1.7 Checkpoint: 运行 `php74 vendor/bin/phpunit --testsuite unit` 确认 DynamoDB 模块全部测试通过，commit
 
-- [ ] 2. Phase 1-B: 补齐 SQS 模块纯单元测试（PHPUnit 5.7 API，PHP 7.4 运行）
-  - [ ] 2.1 编写 `SqsQueue` 纯单元测试（mock `SqsClient`）
+- [-] 2. Phase 1-B: 补齐 SQS 模块纯单元测试（PHPUnit 5.7 API，PHP 7.4 运行）
+  - [x] 2.1 编写 `SqsQueue` 纯单元测试（mock `SqsClient`）
     - 创建 `ut/unit/SqsQueueTest.php`
     - Mock `Aws\Sqs\SqsClient`，覆盖：`createQueue`、`deleteQueue`、`purge`、`sendMessage`/`sendMessages`（含 `base64_serialize` 序列化路径）、`receiveMessage`/`receiveMessages`、`deleteMessage`/`deleteMessages`、属性管理（`getAttribute`/`getAttributes`/`setAttributes`）、异常路径（`InvalidArgumentException`）
     - _Requirements: 1.1, 1.2, 1.4_
-  - [ ] 2.2 编写 `SqsMessage` 纯单元测试
+  - [x] 2.2 编写 `SqsMessage` 纯单元测试
     - 创建 `ut/unit/SqsMessageTest.php`
     - 覆盖：构造函数、getter 方法
     - _Requirements: 1.1, 1.2, 1.4_
-  - [ ] 2.3 编写 `SqsReceivedMessage` 纯单元测试
+  - [x] 2.3 编写 `SqsReceivedMessage` 纯单元测试
     - 创建 `ut/unit/SqsReceivedMessageTest.php`
     - 覆盖：MD5 校验逻辑、反序列化（`base64_serialize` / JSON / plain text）、`getAttribute`、异常路径（`UnexpectedValueException`）
     - _Requirements: 1.1, 1.2, 1.4_
-  - [ ] 2.4 编写 `SqsSentMessage` 纯单元测试
+  - [x] 2.4 编写 `SqsSentMessage` 纯单元测试
     - 创建 `ut/unit/SqsSentMessageTest.php`
     - 覆盖：构造函数、MD5 字段
     - _Requirements: 1.1, 1.2, 1.4_
-  - [ ] 2.5 Checkpoint: 运行 `php74 vendor/bin/phpunit --testsuite unit` 确认 SQS 模块全部测试通过，commit
+  - [-] 2.5 Checkpoint: 运行 `php74 vendor/bin/phpunit --testsuite unit` 确认 SQS 模块全部测试通过，commit
 
-- [ ] 3. Phase 1-C: 补齐其他模块纯单元测试（PHPUnit 5.7 API，PHP 7.4 运行）
+- [~] 3. Phase 1-C: 补齐其他模块纯单元测试（PHPUnit 5.7 API，PHP 7.4 运行）
   - [ ] 3.1 编写 `S3Client` 纯单元测试
     - 创建 `ut/unit/S3ClientTest.php`
     - 覆盖：构造函数（endpoint 生成逻辑：`cn-` 前缀 / `us-east-1` / 其他 region）、`getPresignedUri` 路径解析、异常路径（`InvalidArgumentException`）
@@ -83,7 +83,7 @@
     - _Requirements: 1.1, 1.2, 1.4_
   - [ ] 3.7 Checkpoint: 运行 `php74 vendor/bin/phpunit --testsuite unit` 确认全部单元测试通过（Phase 1 完成），commit
 
-- [ ] 4. Phase 2: PHPUnit 5.7 → 13 迁移
+- [~] 4. Phase 2: PHPUnit 5.7 → 13 迁移
   - [ ] 4.1 升级 `composer.json` 中 PHPUnit 版本约束
     - 将 `require-dev` 中 `phpunit/phpunit` 从 `^5.7` 改为 `^13`
     - 运行 `php composer.phar update phpunit/phpunit --with-all-dependencies`（或 `composer update`）确认依赖解析成功
@@ -115,7 +115,7 @@
     - _Requirements: 2.4_
   - [ ] 4.6 Checkpoint: 运行 `php74 vendor/bin/phpunit --testsuite unit` 确认全部单元测试通过；如有 AWS 凭证可运行 `php74 vendor/bin/phpunit --testsuite integration` 验证集成测试，commit
 
-- [ ] 5. Phase 3: PHP 7.4 → 8.5 + 依赖升级（含 symfony/cache 替换）
+- [~] 5. Phase 3: PHP 7.4 → 8.5 + 依赖升级（含 symfony/cache 替换）
   - [ ] 5.1 编写 `AwsConfigDataProvider` 缓存替换的单元测试
     - 在 `ut/unit/AwsConfigDataProviderTest.php` 中补充 IAM Role 凭证缓存路径的测试用例，验证 `symfony/cache` 替换后的行为
     - 测试应先于实现编写（RED），此时测试预期会失败
@@ -143,7 +143,7 @@
     - _Requirements: 4.2, 4.3, 4.4_
   - [ ] 5.6 Checkpoint: 使用 PHP 8.5 运行 `php vendor/bin/phpunit --testsuite unit` 确认全部单元测试通过（Req 4 AC3）；如有 AWS 凭证可运行 `php vendor/bin/phpunit --testsuite integration` 验证（Req 4 AC4），commit
 
-- [ ] 6. Phase 4: 源代码风格现代化
+- [~] 6. Phase 4: 源代码风格现代化
   - [ ] 6.1 编写风格现代化的回归测试基线
     - 在现有单元测试中确认所有测试通过，作为行为等价的基线
     - 记录当前测试数量和通过状态
@@ -160,7 +160,7 @@
     - _Requirements: 6.1, 6.2, 6.3, 6.4, 6.5, 6.6, 6.7, 6.8_
   - [ ] 6.3 Checkpoint: 运行 `php vendor/bin/phpunit --testsuite unit` 确认全部单元测试通过（行为等价验证），commit
 
-- [ ] 7. Phase 5: PBT 引入 + 覆盖率考核机制
+- [~] 7. Phase 5: PBT 引入 + 覆盖率考核机制
   - [ ] 7.1 添加 Eris PBT 库依赖
     - `composer require --dev giorgiosironi/eris`
     - 确认安装成功
@@ -198,7 +198,7 @@
     - _Requirements: 8.1, 8.2, 8.3, 8.4, 8.5_
   - [ ] 7.6 Checkpoint: 运行 PBT 测试和覆盖率检查确认全部通过，commit
 
-- [ ] 8. Phase 6: 文档同步更新
+- [~] 8. Phase 6: 文档同步更新
   - [ ] 8.1 更新 `docs/state/architecture.md`
     - 测试 section：PHPUnit ^5.7 → 13，测试目录 `ut/` → `ut/unit/` + `ut/integration/`，新增 PBT 和覆盖率机制描述
     - 依赖 section：`doctrine/common ^2.7` → `symfony/cache ^7.x`，`phpunit/phpunit ^5.7` → `^13`，`league/uri` 版本更新，新增 `giorgiosironi/eris`
@@ -211,7 +211,7 @@
     - _Requirements: 9.2_
   - [ ] 8.3 Checkpoint: 确认文档内容与实际代码/配置一致，commit
 
-- [ ] 9. 手工测试
+- [~] 9. 手工测试
   - [ ] 9.1 Increment alpha tag
     - 查询已有 alpha tag（`git tag -l 'v3.0.0-alpha.*'`），取最大序号 +1，打新 tag
   - [ ] 9.2 验证全量测试在 PHP 8.5 下通过
@@ -227,7 +227,7 @@
   - [ ] 9.6 验证公共 API 兼容性
     - 检查 `src/` 下所有公共方法签名未发生语义变更（方法名、参数顺序、行为契约不变）
 
-- [ ] 10. Code Review
+- [~] 10. Code Review
   - [ ] 10.1 委托给 code-reviewer sub-agent，基于当前分支的 diff 执行全量 code review
 
 ## Notes
