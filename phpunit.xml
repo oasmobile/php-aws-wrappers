@@ -15,5 +15,8 @@
             <file>ut/StsClientTest.php</file>
             <file>ut/SqsQueueTest.php</file>
         </testsuite>
+        <testsuite name="unit">
+            <directory>ut/unit</directory>
+        </testsuite>
     </testsuites>
 </phpunit>

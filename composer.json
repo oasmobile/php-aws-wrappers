@@ -27,7 +27,8 @@
     },
     "autoload-dev": {
         "psr-4": {
-            "Oasis\\Mlib\\AwsWrappers\\Test\\": "ut/"
+            "Oasis\\Mlib\\AwsWrappers\\Test\\": "ut/",
+            "Oasis\\Mlib\\AwsWrappers\\Test\\Unit\\": "ut/unit/"
         }
     }
 }
