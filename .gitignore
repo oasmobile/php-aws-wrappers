@@ -1,3 +1,17 @@
 /vendor/
 /.idea/
 *.DS_Store
+
+# PHPUnit cache (PHPUnit 11+)
+.phpunit.cache/
+.phpunit.result.cache
+
+# Agent playbook export
+agent-playbook.zip
+
+# Graphify generated artifacts
+graphify-out/.graphify_python
+graphify-out/.graphify_detect.json
+graphify-out/cache/
+graphify-out/manifest.json
+ut/graphify-out/
