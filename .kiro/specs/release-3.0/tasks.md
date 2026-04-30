@@ -37,7 +37,7 @@
     - _Requirements: 1.1, 1.2, 1.4_
   - [x] 1.7 Checkpoint: 运行 `php74 vendor/bin/phpunit --testsuite unit` 确认 DynamoDB 模块全部测试通过，commit
 
-- [-] 2. Phase 1-B: 补齐 SQS 模块纯单元测试（PHPUnit 5.7 API，PHP 7.4 运行）
+- [x] 2. Phase 1-B: 补齐 SQS 模块纯单元测试（PHPUnit 5.7 API，PHP 7.4 运行）
   - [x] 2.1 编写 `SqsQueue` 纯单元测试（mock `SqsClient`）
     - 创建 `ut/unit/SqsQueueTest.php`
     - Mock `Aws\Sqs\SqsClient`，覆盖：`createQueue`、`deleteQueue`、`purge`、`sendMessage`/`sendMessages`（含 `base64_serialize` 序列化路径）、`receiveMessage`/`receiveMessages`、`deleteMessage`/`deleteMessages`、属性管理（`getAttribute`/`getAttributes`/`setAttributes`）、异常路径（`InvalidArgumentException`）
@@ -54,34 +54,34 @@
     - 创建 `ut/unit/SqsSentMessageTest.php`
     - 覆盖：构造函数、MD5 字段
     - _Requirements: 1.1, 1.2, 1.4_
-  - [-] 2.5 Checkpoint: 运行 `php74 vendor/bin/phpunit --testsuite unit` 确认 SQS 模块全部测试通过，commit
+  - [x] 2.5 Checkpoint: 运行 `php74 vendor/bin/phpunit --testsuite unit` 确认 SQS 模块全部测试通过，commit
 
-- [~] 3. Phase 1-C: 补齐其他模块纯单元测试（PHPUnit 5.7 API，PHP 7.4 运行）
-  - [ ] 3.1 编写 `S3Client` 纯单元测试
+- [-] 3. Phase 1-C: 补齐其他模块纯单元测试（PHPUnit 5.7 API，PHP 7.4 运行）
+  - [x] 3.1 编写 `S3Client` 纯单元测试
     - 创建 `ut/unit/S3ClientTest.php`
     - 覆盖：构造函数（endpoint 生成逻辑：`cn-` 前缀 / `us-east-1` / 其他 region）、`getPresignedUri` 路径解析、异常路径（`InvalidArgumentException`）
     - _Requirements: 1.1, 1.2, 1.4_
-  - [ ] 3.2 编写 `StsClient` 纯单元测试（mock `Aws\Sts\StsClient`）
+  - [x] 3.2 编写 `StsClient` 纯单元测试（mock `Aws\Sts\StsClient`）
     - 创建 `ut/unit/StsClientTest.php`
     - 覆盖：构造函数、`getTemporaryCredential` mock 返回值
     - _Requirements: 1.1, 1.2, 1.4_
-  - [ ] 3.3 编写 `SnsPublisher` 纯单元测试（mock `SnsClient`）
+  - [x] 3.3 编写 `SnsPublisher` 纯单元测试（mock `SnsClient`）
     - 创建 `ut/unit/SnsPublisherTest.php`
     - 覆盖：`publish` 多通道消息结构（Email / SQS / Lambda / APNS / GCM）、`publishToSubscribedSQS` 序列化
     - _Requirements: 1.1, 1.2, 1.4_
-  - [ ] 3.4 编写 `AwsConfigDataProvider` 纯单元测试
+  - [x] 3.4 编写 `AwsConfigDataProvider` 纯单元测试
     - 创建 `ut/unit/AwsConfigDataProviderTest.php`
     - 覆盖：region 校验（缺失→`MandatoryValueMissingException`）、凭证处理（profile / credentials 数组 / `TemporaryCredential` / IAM Role / env）、版本设置
     - _Requirements: 1.1, 1.2, 1.4_
-  - [ ] 3.5 编写 `TemporaryCredential` 纯单元测试
+  - [x] 3.5 编写 `TemporaryCredential` 纯单元测试
     - 创建 `ut/unit/TemporaryCredentialTest.php`
     - 覆盖：属性赋值与读取
     - _Requirements: 1.1, 1.2, 1.4_
-  - [ ] 3.6 编写 `AwsSnsHandler` 纯单元测试（mock `SnsPublisher`）
+  - [x] 3.6 编写 `AwsSnsHandler` 纯单元测试（mock `SnsPublisher`）
     - 创建 `ut/unit/AwsSnsHandlerTest.php`
     - 覆盖：`write`（单条日志）、`handleBatch`（批量日志）、publisher 交互验证
     - _Requirements: 1.1, 1.2, 1.4_
-  - [ ] 3.7 Checkpoint: 运行 `php74 vendor/bin/phpunit --testsuite unit` 确认全部单元测试通过（Phase 1 完成），commit
+  - [-] 3.7 Checkpoint: 运行 `php74 vendor/bin/phpunit --testsuite unit` 确认全部单元测试通过（Phase 1 完成），commit
 
 - [~] 4. Phase 2: PHPUnit 5.7 → 13 迁移
   - [ ] 4.1 升级 `composer.json` 中 PHPUnit 版本约束
