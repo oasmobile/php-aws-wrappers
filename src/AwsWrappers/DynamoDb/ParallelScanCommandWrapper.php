@@ -114,7 +114,7 @@ class ParallelScanCommandWrapper
                 }
             }
             if ($promises) {
-                \GuzzleHttp\Promise\all($promises)->wait();
+                \GuzzleHttp\Promise\Utils::all($promises)->wait();
             }
         }
         

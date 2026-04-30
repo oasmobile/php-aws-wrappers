@@ -7,6 +7,7 @@ use GuzzleHttp\Promise\FulfilledPromise;
 use Oasis\Mlib\AwsWrappers\DynamoDbIndex;
 use Oasis\Mlib\AwsWrappers\DynamoDbItem;
 use Oasis\Mlib\AwsWrappers\DynamoDbManager;
+use PHPUnit\Framework\TestCase;
 
 /**
  * Lightweight stub that replaces DynamoDbClient for unit testing.
@@ -134,7 +135,7 @@ class TestableDynamoDbManager extends DynamoDbManager
     }
 }
 
-class DynamoDbManagerTest extends \PHPUnit_Framework_TestCase
+class DynamoDbManagerTest extends TestCase
 {
     /** @var StubDynamoDbClient */
     private $stub;
@@ -142,7 +143,7 @@ class DynamoDbManagerTest extends \PHPUnit_Framework_TestCase
     /** @var TestableDynamoDbManager */
     private $manager;
 
-    protected function setUp()
+    protected function setUp(): void
     {
         $this->stub    = new StubDynamoDbClient();
         $this->manager = new TestableDynamoDbManager($this->stub);

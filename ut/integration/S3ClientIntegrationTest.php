@@ -6,14 +6,16 @@
  * Time: 15:33
  */
 
-namespace Oasis\Mlib\AwsWrappers\Test;
+namespace Oasis\Mlib\AwsWrappers\Test\Integration;
 
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\ClientException;
-use League\Uri\Schemes\Http;
+use League\Uri\Http;
 use Oasis\Mlib\AwsWrappers\S3Client;
+use Oasis\Mlib\AwsWrappers\Test\UTConfig;
+use PHPUnit\Framework\TestCase;
 
-class S3ClientTest extends \PHPUnit_Framework_TestCase
+class S3ClientIntegrationTest extends TestCase
 {
     public function testPresignedUri()
     {
@@ -31,7 +33,7 @@ class S3ClientTest extends \PHPUnit_Framework_TestCase
         $response = $client->request('GET', $url);
         $this->assertEquals('testnote', $response->getBody()->getContents());
         
-        $unsignedUrl = Http::createFromString($url)->withQuery('');
+        $unsignedUrl = Http::new($url)->withQuery('');
         try {
             $client->request('GET', $unsignedUrl);
             throw new \RuntimeException("Should not come here!");

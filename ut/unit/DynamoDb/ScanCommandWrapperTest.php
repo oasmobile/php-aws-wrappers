@@ -6,8 +6,9 @@ use Aws\Result;
 use GuzzleHttp\Promise;
 use Oasis\Mlib\AwsWrappers\DynamoDb\ScanCommandWrapper;
 use Oasis\Mlib\AwsWrappers\DynamoDbIndex;
+use PHPUnit\Framework\TestCase;
 
-class ScanCommandWrapperTest extends \PHPUnit_Framework_TestCase
+class ScanCommandWrapperTest extends TestCase
 {
     /** @var StubDynamoDbClient */
     private $stub;
@@ -15,7 +16,7 @@ class ScanCommandWrapperTest extends \PHPUnit_Framework_TestCase
     /** @var ScanCommandWrapper */
     private $wrapper;
 
-    protected function setUp()
+    protected function setUp(): void
     {
         $this->stub    = new StubDynamoDbClient();
         $this->wrapper = new ScanCommandWrapper();

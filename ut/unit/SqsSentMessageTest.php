@@ -3,8 +3,9 @@
 namespace Oasis\Mlib\AwsWrappers\Test\Unit;
 
 use Oasis\Mlib\AwsWrappers\SqsSentMessage;
+use PHPUnit\Framework\TestCase;
 
-class SqsSentMessageTest extends \PHPUnit_Framework_TestCase
+class SqsSentMessageTest extends TestCase
 {
     // ── Constructor: happy path ──────────────────────────────────
 
@@ -46,7 +47,7 @@ class SqsSentMessageTest extends \PHPUnit_Framework_TestCase
 
     public function testConstructorThrowsWhenMessageIdMissing()
     {
-        $this->setExpectedException(\Exception::class);
+        $this->expectException(\Exception::class);
 
         new SqsSentMessage([
             'MD5OfMessageBody' => 'abc123',
@@ -55,7 +56,7 @@ class SqsSentMessageTest extends \PHPUnit_Framework_TestCase
 
     public function testConstructorThrowsWhenMd5OfMessageBodyMissing()
     {
-        $this->setExpectedException(\Exception::class);
+        $this->expectException(\Exception::class);
 
         new SqsSentMessage([
             'MessageId' => 'sent-004',

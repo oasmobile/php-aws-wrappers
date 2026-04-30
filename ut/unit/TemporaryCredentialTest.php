@@ -3,8 +3,9 @@
 namespace Oasis\Mlib\AwsWrappers\Test\Unit;
 
 use Oasis\Mlib\AwsWrappers\TemporaryCredential;
+use PHPUnit\Framework\TestCase;
 
-class TemporaryCredentialTest extends \PHPUnit_Framework_TestCase
+class TemporaryCredentialTest extends TestCase
 {
     // ── Property assignment and retrieval ─────────────────────────
 

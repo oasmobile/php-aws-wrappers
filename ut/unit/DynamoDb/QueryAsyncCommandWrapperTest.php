@@ -5,8 +5,9 @@ namespace Oasis\Mlib\AwsWrappers\Test\Unit\DynamoDb;
 use GuzzleHttp\Promise\FulfilledPromise;
 use Oasis\Mlib\AwsWrappers\DynamoDb\QueryAsyncCommandWrapper;
 use Oasis\Mlib\AwsWrappers\DynamoDbIndex;
+use PHPUnit\Framework\TestCase;
 
-class QueryAsyncCommandWrapperTest extends \PHPUnit_Framework_TestCase
+class QueryAsyncCommandWrapperTest extends TestCase
 {
     /** @var StubDynamoDbClient */
     private $stub;
@@ -14,7 +15,7 @@ class QueryAsyncCommandWrapperTest extends \PHPUnit_Framework_TestCase
     /** @var QueryAsyncCommandWrapper */
     private $wrapper;
 
-    protected function setUp()
+    protected function setUp(): void
     {
         $this->stub    = new StubDynamoDbClient();
         $this->wrapper = new QueryAsyncCommandWrapper();
@@ -236,7 +237,7 @@ class QueryAsyncCommandWrapperTest extends \PHPUnit_Framework_TestCase
 
     public function testQueryProjectedFieldsConflictThrowsException()
     {
-        $this->setExpectedException(\InvalidArgumentException::class);
+        $this->expectException(\InvalidArgumentException::class);
 
         $this->stub->queryAsyncResults = [new FulfilledPromise('ok')];
 

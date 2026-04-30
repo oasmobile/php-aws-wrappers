@@ -9,6 +9,7 @@ use GuzzleHttp\Promise\FulfilledPromise;
 use Oasis\Mlib\AwsWrappers\DynamoDbIndex;
 use Oasis\Mlib\AwsWrappers\DynamoDbItem;
 use Oasis\Mlib\AwsWrappers\DynamoDbTable;
+use PHPUnit\Framework\TestCase;
 
 /**
  * Test subclass that allows injecting a mock DynamoDbClient.
@@ -26,31 +27,66 @@ class TestableDynamoDbTable extends DynamoDbTable
     }
 }
 
-class DynamoDbTableTest extends \PHPUnit_Framework_TestCase
+/**
+ * Stub DynamoDbClient that records magic method calls and returns queued results.
+ * PHPUnit 13 removed addMethods()/setMethods(), so we use a manual stub for
+ * AWS SDK clients that rely on __call magic methods.
+ */
+class StubDynamoDbClientForTable extends DynamoDbClient
 {
-    /** @var DynamoDbClient|\PHPUnit_Framework_MockObject_MockObject */
+    /** @var array<string, list<mixed>> Queued return values per method */
+    private array $returnQueue = [];
+
+    /** @var array<string, list<\Throwable>> Queued exceptions per method */
+    private array $throwQueue = [];
+
+    /** @var array<string, list<array>> Recorded calls per method */
+    public array $calls = [];
+
+    public function __construct()
+    {
+        // Skip parent constructor
+    }
+
+    public function queueReturn(string $method, mixed $value): self
+    {
+        $this->returnQueue[$method][] = $value;
+        return $this;
+    }
+
+    public function queueThrow(string $method, \Throwable $e): self
+    {
+        $this->throwQueue[$method][] = $e;
+        return $this;
+    }
+
+    public function __call($name, array $args)
+    {
+        $this->calls[$name][] = $args;
+
+        if (!empty($this->throwQueue[$name])) {
+            throw array_shift($this->throwQueue[$name]);
+        }
+
+        if (!empty($this->returnQueue[$name])) {
+            return array_shift($this->returnQueue[$name]);
+        }
+
+        return null;
+    }
+}
+
+class DynamoDbTableTest extends TestCase
+{
+    /** @var StubDynamoDbClientForTable */
     private $mockClient;
 
     /** @var TestableDynamoDbTable */
     private $table;
 
-    function setUp()
+    protected function setUp(): void
     {
-        $this->mockClient = $this->getMockBuilder(DynamoDbClient::class)
-            ->disableOriginalConstructor()
-            ->setMethods([
-                'getItem',
-                'putItem',
-                'deleteItem',
-                'batchGetItemAsync',
-                'batchWriteItemAsync',
-                'queryAsync',
-                'scanAsync',
-                'describeTable',
-                'updateTable',
-            ])
-            ->getMock();
-
+        $this->mockClient = new StubDynamoDbClientForTable();
         $this->table = new TestableDynamoDbTable($this->mockClient, 'test-table');
     }
 
@@ -82,25 +118,21 @@ class DynamoDbTableTest extends \PHPUnit_Framework_TestCase
     {
         $typedItem = ['id' => ['S' => '123'], 'name' => ['S' => 'Alice']];
 
-        $this->mockClient->expects($this->once())
-            ->method('getItem')
-            ->with($this->callback(function ($args) {
-                return $args['TableName'] === 'test-table'
-                    && isset($args['Key']['id']);
-            }))
-            ->willReturn(new Result(['Item' => $typedItem]));
+        $this->mockClient->queueReturn('getItem', new Result(['Item' => $typedItem]));
 
         $result = $this->table->get(['id' => '123']);
 
         $this->assertSame('123', $result['id']);
         $this->assertSame('Alice', $result['name']);
+        $this->assertCount(1, $this->mockClient->calls['getItem']);
+        $args = $this->mockClient->calls['getItem'][0][0];
+        $this->assertSame('test-table', $args['TableName']);
+        $this->assertArrayHasKey('id', $args['Key']);
     }
 
     public function testGetReturnsNullWhenItemNotFound()
     {
-        $this->mockClient->expects($this->once())
-            ->method('getItem')
-            ->willReturn(new Result(['Item' => null]));
+        $this->mockClient->queueReturn('getItem', new Result(['Item' => null]));
 
         $result = $this->table->get(['id' => '999']);
 
@@ -109,29 +141,24 @@ class DynamoDbTableTest extends \PHPUnit_Framework_TestCase
 
     public function testGetWithConsistentRead()
     {
-        $this->mockClient->expects($this->once())
-            ->method('getItem')
-            ->with($this->callback(function ($args) {
-                return isset($args['ConsistentRead']) && $args['ConsistentRead'] === true;
-            }))
-            ->willReturn(new Result(['Item' => ['id' => ['S' => '1']]]));
+        $this->mockClient->queueReturn('getItem', new Result(['Item' => ['id' => ['S' => '1']]]));
 
         $this->table->get(['id' => '1'], true);
+
+        $args = $this->mockClient->calls['getItem'][0][0];
+        $this->assertTrue($args['ConsistentRead']);
     }
 
     public function testGetWithProjectedFields()
     {
-        $this->mockClient->expects($this->once())
-            ->method('getItem')
-            ->with($this->callback(function ($args) {
-                // Verify projection-related keys exist in the request
-                return isset($args['ExpressionAttributeNames']);
-            }))
-            ->willReturn(new Result(['Item' => ['id' => ['S' => '1']]]));
+        $this->mockClient->queueReturn('getItem', new Result(['Item' => ['id' => ['S' => '1']]]));
 
         // Note: the source code uses deprecated implode() parameter order on PHP 7.4,
         // which triggers a deprecation warning but still works.
         @$this->table->get(['id' => '1'], false, ['name', 'email']);
+
+        $args = $this->mockClient->calls['getItem'][0][0];
+        $this->assertArrayHasKey('ExpressionAttributeNames', $args);
     }
 
     // ================================================================
@@ -140,29 +167,19 @@ class DynamoDbTableTest extends \PHPUnit_Framework_TestCase
 
     public function testSetReturnsTrueOnSuccess()
     {
-        $this->mockClient->expects($this->once())
-            ->method('putItem')
-            ->with($this->callback(function ($args) {
-                return $args['TableName'] === 'test-table'
-                    && isset($args['Item']);
-            }))
-            ->willReturn(new Result([]));
+        $this->mockClient->queueReturn('putItem', new Result([]));
 
         $result = $this->table->set(['id' => '1', 'name' => 'Bob']);
 
         $this->assertTrue($result);
+        $args = $this->mockClient->calls['putItem'][0][0];
+        $this->assertSame('test-table', $args['TableName']);
+        $this->assertArrayHasKey('Item', $args);
     }
 
     public function testSetWithCheckValuesBuildsConditionExpression()
     {
-        $this->mockClient->expects($this->once())
-            ->method('putItem')
-            ->with($this->callback(function ($args) {
-                return isset($args['ConditionExpression'])
-                    && isset($args['ExpressionAttributeNames'])
-                    && isset($args['ExpressionAttributeValues']);
-            }))
-            ->willReturn(new Result([]));
+        $this->mockClient->queueReturn('putItem', new Result([]));
 
         $result = $this->table->set(
             ['id' => '1', 'name' => 'Bob'],
@@ -170,19 +187,18 @@ class DynamoDbTableTest extends \PHPUnit_Framework_TestCase
         );
 
         $this->assertTrue($result);
+        $args = $this->mockClient->calls['putItem'][0][0];
+        $this->assertArrayHasKey('ConditionExpression', $args);
+        $this->assertArrayHasKey('ExpressionAttributeNames', $args);
+        $this->assertArrayHasKey('ExpressionAttributeValues', $args);
     }
 
     public function testSetReturnsFalseOnConditionalCheckFailedException()
     {
-        $exception = $this->getMockBuilder(DynamoDbException::class)
-            ->disableOriginalConstructor()
-            ->setMethods(['getAwsErrorCode', 'getAwsErrorType'])
-            ->getMock();
+        $exception = $this->createStub(DynamoDbException::class);
         $exception->method('getAwsErrorCode')->willReturn('ConditionalCheckFailedException');
 
-        $this->mockClient->expects($this->once())
-            ->method('putItem')
-            ->willThrowException($exception);
+        $this->mockClient->queueThrow('putItem', $exception);
 
         $result = $this->table->set(
             ['id' => '1', 'name' => 'Bob'],
@@ -198,14 +214,12 @@ class DynamoDbTableTest extends \PHPUnit_Framework_TestCase
 
     public function testDelete()
     {
-        $this->mockClient->expects($this->once())
-            ->method('deleteItem')
-            ->with($this->callback(function ($args) {
-                return $args['TableName'] === 'test-table'
-                    && isset($args['Key']['id']);
-            }));
-
         $this->table->delete(['id' => '1']);
+
+        $this->assertCount(1, $this->mockClient->calls['deleteItem']);
+        $args = $this->mockClient->calls['deleteItem'][0][0];
+        $this->assertSame('test-table', $args['TableName']);
+        $this->assertArrayHasKey('id', $args['Key']);
     }
 
     // ================================================================
@@ -226,9 +240,7 @@ class DynamoDbTableTest extends \PHPUnit_Framework_TestCase
             'UnprocessedKeys' => [],
         ]);
 
-        $this->mockClient->expects($this->once())
-            ->method('batchGetItemAsync')
-            ->willReturn(new FulfilledPromise($result));
+        $this->mockClient->queueReturn('batchGetItemAsync', new FulfilledPromise($result));
 
         $items = $this->table->batchGet([['id' => '1'], ['id' => '2']]);
 
@@ -247,19 +259,16 @@ class DynamoDbTableTest extends \PHPUnit_Framework_TestCase
             'UnprocessedItems' => [],
         ]);
 
-        $this->mockClient->expects($this->once())
-            ->method('batchWriteItemAsync')
-            ->with($this->callback(function ($args) {
-                $items = $args['RequestItems']['test-table'];
-                // batchPut uses PutRequest
-                return isset($items[0]['PutRequest']);
-            }))
-            ->willReturn(new FulfilledPromise($result));
+        $this->mockClient->queueReturn('batchWriteItemAsync', new FulfilledPromise($result));
 
         $this->table->batchPut([
             ['id' => '1', 'name' => 'Alice'],
             ['id' => '2', 'name' => 'Bob'],
         ]);
+
+        $args = $this->mockClient->calls['batchWriteItemAsync'][0][0];
+        $items = $args['RequestItems']['test-table'];
+        $this->assertArrayHasKey('PutRequest', $items[0]);
     }
 
     // ================================================================
@@ -272,19 +281,16 @@ class DynamoDbTableTest extends \PHPUnit_Framework_TestCase
             'UnprocessedItems' => [],
         ]);
 
-        $this->mockClient->expects($this->once())
-            ->method('batchWriteItemAsync')
-            ->with($this->callback(function ($args) {
-                $items = $args['RequestItems']['test-table'];
-                // batchDelete uses DeleteRequest
-                return isset($items[0]['DeleteRequest']);
-            }))
-            ->willReturn(new FulfilledPromise($result));
+        $this->mockClient->queueReturn('batchWriteItemAsync', new FulfilledPromise($result));
 
         $this->table->batchDelete([
             ['id' => '1'],
             ['id' => '2'],
         ]);
+
+        $args = $this->mockClient->calls['batchWriteItemAsync'][0][0];
+        $items = $args['RequestItems']['test-table'];
+        $this->assertArrayHasKey('DeleteRequest', $items[0]);
     }
 
     // ================================================================
@@ -302,9 +308,7 @@ class DynamoDbTableTest extends \PHPUnit_Framework_TestCase
             'Count' => 1,
         ]);
 
-        $this->mockClient->expects($this->once())
-            ->method('queryAsync')
-            ->willReturn(new FulfilledPromise($result));
+        $this->mockClient->queueReturn('queryAsync', new FulfilledPromise($result));
 
         $items = $this->table->query(
             '#pk = :pk',
@@ -338,9 +342,7 @@ class DynamoDbTableTest extends \PHPUnit_Framework_TestCase
             $promise->resolve($result);
         });
 
-        $this->mockClient->expects($this->once())
-            ->method('scanAsync')
-            ->willReturn($promise);
+        $this->mockClient->queueReturn('scanAsync', $promise);
 
         $items = $this->table->scan();
 
@@ -362,10 +364,7 @@ class DynamoDbTableTest extends \PHPUnit_Framework_TestCase
             ],
         ];
 
-        $this->mockClient->expects($this->once())
-            ->method('describeTable')
-            ->with(['TableName' => 'test-table'])
-            ->willReturn(new Result(['Table' => $tableDesc]));
+        $this->mockClient->queueReturn('describeTable', new Result(['Table' => $tableDesc]));
 
         $result = $this->table->describe();
 
@@ -379,52 +378,46 @@ class DynamoDbTableTest extends \PHPUnit_Framework_TestCase
 
     public function testAddGlobalSecondaryIndex()
     {
-        // describe returns no existing GSIs
-        $this->mockClient->expects($this->once())
-            ->method('describeTable')
-            ->willReturn(new Result([
-                'Table' => [
-                    'TableName'          => 'test-table',
-                    'AttributeDefinitions' => [],
-                ],
-            ]));
-
-        $this->mockClient->expects($this->once())
-            ->method('updateTable')
-            ->with($this->callback(function ($args) {
-                return isset($args['GlobalSecondaryIndexUpdates'][0]['Create']);
-            }));
+        $this->mockClient->queueReturn('describeTable', new Result([
+            'Table' => [
+                'TableName'          => 'test-table',
+                'AttributeDefinitions' => [],
+            ],
+        ]));
+        // updateTable returns null by default from stub
 
         $gsi = new DynamoDbIndex('email', DynamoDbItem::ATTRIBUTE_TYPE_STRING);
         $gsi->setName('email-index');
 
         $this->table->addGlobalSecondaryIndex($gsi);
+
+        $this->assertCount(1, $this->mockClient->calls['updateTable']);
+        $args = $this->mockClient->calls['updateTable'][0][0];
+        $this->assertArrayHasKey('Create', $args['GlobalSecondaryIndexUpdates'][0]);
     }
 
     public function testAddGlobalSecondaryIndexThrowsIfAlreadyExists()
     {
-        $this->setExpectedException(\RuntimeException::class, 'Global Secondary Index exists');
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Global Secondary Index exists');
 
-        // describe returns existing GSI with matching name
-        $this->mockClient->expects($this->once())
-            ->method('describeTable')
-            ->willReturn(new Result([
-                'Table' => [
-                    'TableName' => 'test-table',
-                    'AttributeDefinitions' => [
-                        ['AttributeName' => 'email', 'AttributeType' => 'S'],
-                    ],
-                    'GlobalSecondaryIndexes' => [
-                        [
-                            'IndexName' => 'email-index',
-                            'KeySchema' => [
-                                ['AttributeName' => 'email', 'KeyType' => 'HASH'],
-                            ],
-                            'Projection' => ['ProjectionType' => 'ALL'],
+        $this->mockClient->queueReturn('describeTable', new Result([
+            'Table' => [
+                'TableName' => 'test-table',
+                'AttributeDefinitions' => [
+                    ['AttributeName' => 'email', 'AttributeType' => 'S'],
+                ],
+                'GlobalSecondaryIndexes' => [
+                    [
+                        'IndexName' => 'email-index',
+                        'KeySchema' => [
+                            ['AttributeName' => 'email', 'KeyType' => 'HASH'],
                         ],
+                        'Projection' => ['ProjectionType' => 'ALL'],
                     ],
                 ],
-            ]));
+            ],
+        ]));
 
         $gsi = new DynamoDbIndex('email', DynamoDbItem::ATTRIBUTE_TYPE_STRING);
         $gsi->setName('email-index');
@@ -438,48 +431,42 @@ class DynamoDbTableTest extends \PHPUnit_Framework_TestCase
 
     public function testDeleteGlobalSecondaryIndex()
     {
-        $this->mockClient->expects($this->once())
-            ->method('describeTable')
-            ->willReturn(new Result([
-                'Table' => [
-                    'TableName' => 'test-table',
-                    'AttributeDefinitions' => [
-                        ['AttributeName' => 'email', 'AttributeType' => 'S'],
-                    ],
-                    'GlobalSecondaryIndexes' => [
-                        [
-                            'IndexName' => 'email-index',
-                            'KeySchema' => [
-                                ['AttributeName' => 'email', 'KeyType' => 'HASH'],
-                            ],
-                            'Projection' => ['ProjectionType' => 'ALL'],
+        $this->mockClient->queueReturn('describeTable', new Result([
+            'Table' => [
+                'TableName' => 'test-table',
+                'AttributeDefinitions' => [
+                    ['AttributeName' => 'email', 'AttributeType' => 'S'],
+                ],
+                'GlobalSecondaryIndexes' => [
+                    [
+                        'IndexName' => 'email-index',
+                        'KeySchema' => [
+                            ['AttributeName' => 'email', 'KeyType' => 'HASH'],
                         ],
+                        'Projection' => ['ProjectionType' => 'ALL'],
                     ],
                 ],
-            ]));
-
-        $this->mockClient->expects($this->once())
-            ->method('updateTable')
-            ->with($this->callback(function ($args) {
-                return isset($args['GlobalSecondaryIndexUpdates'][0]['Delete'])
-                    && $args['GlobalSecondaryIndexUpdates'][0]['Delete']['IndexName'] === 'email-index';
-            }));
+            ],
+        ]));
 
         $this->table->deleteGlobalSecondaryIndex('email-index');
+
+        $args = $this->mockClient->calls['updateTable'][0][0];
+        $this->assertArrayHasKey('Delete', $args['GlobalSecondaryIndexUpdates'][0]);
+        $this->assertSame('email-index', $args['GlobalSecondaryIndexUpdates'][0]['Delete']['IndexName']);
     }
 
     public function testDeleteGlobalSecondaryIndexThrowsIfNotExists()
     {
-        $this->setExpectedException(\RuntimeException::class, "Global Secondary Index doesn't exist");
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage("Global Secondary Index doesn't exist");
 
-        $this->mockClient->expects($this->once())
-            ->method('describeTable')
-            ->willReturn(new Result([
-                'Table' => [
-                    'TableName'          => 'test-table',
-                    'AttributeDefinitions' => [],
-                ],
-            ]));
+        $this->mockClient->queueReturn('describeTable', new Result([
+            'Table' => [
+                'TableName'          => 'test-table',
+                'AttributeDefinitions' => [],
+            ],
+        ]));
 
         $this->table->deleteGlobalSecondaryIndex('nonexistent-index');
     }
@@ -490,33 +477,27 @@ class DynamoDbTableTest extends \PHPUnit_Framework_TestCase
 
     public function testGetGlobalSecondaryIndicesWithGSIs()
     {
-        $this->mockClient->expects($this->once())
-            ->method('describeTable')
-            ->willReturn(new Result([
-                'Table' => [
-                    'TableName' => 'test-table',
-                    'AttributeDefinitions' => [
-                        ['AttributeName' => 'email', 'AttributeType' => 'S'],
-                        ['AttributeName' => 'age', 'AttributeType' => 'N'],
+        $this->mockClient->queueReturn('describeTable', new Result([
+            'Table' => [
+                'TableName' => 'test-table',
+                'AttributeDefinitions' => [
+                    ['AttributeName' => 'email', 'AttributeType' => 'S'],
+                    ['AttributeName' => 'age', 'AttributeType' => 'N'],
+                ],
+                'GlobalSecondaryIndexes' => [
+                    [
+                        'IndexName' => 'email-index',
+                        'KeySchema' => [['AttributeName' => 'email', 'KeyType' => 'HASH']],
+                        'Projection' => ['ProjectionType' => 'ALL'],
                     ],
-                    'GlobalSecondaryIndexes' => [
-                        [
-                            'IndexName' => 'email-index',
-                            'KeySchema' => [
-                                ['AttributeName' => 'email', 'KeyType' => 'HASH'],
-                            ],
-                            'Projection' => ['ProjectionType' => 'ALL'],
-                        ],
-                        [
-                            'IndexName' => 'age-index',
-                            'KeySchema' => [
-                                ['AttributeName' => 'age', 'KeyType' => 'HASH'],
-                            ],
-                            'Projection' => ['ProjectionType' => 'KEYS_ONLY'],
-                        ],
+                    [
+                        'IndexName' => 'age-index',
+                        'KeySchema' => [['AttributeName' => 'age', 'KeyType' => 'HASH']],
+                        'Projection' => ['ProjectionType' => 'KEYS_ONLY'],
                     ],
                 ],
-            ]));
+            ],
+        ]));
 
         $gsis = $this->table->getGlobalSecondaryIndices();
 
@@ -528,14 +509,12 @@ class DynamoDbTableTest extends \PHPUnit_Framework_TestCase
 
     public function testGetGlobalSecondaryIndicesWithoutGSIs()
     {
-        $this->mockClient->expects($this->once())
-            ->method('describeTable')
-            ->willReturn(new Result([
-                'Table' => [
-                    'TableName'          => 'test-table',
-                    'AttributeDefinitions' => [],
-                ],
-            ]));
+        $this->mockClient->queueReturn('describeTable', new Result([
+            'Table' => [
+                'TableName'          => 'test-table',
+                'AttributeDefinitions' => [],
+            ],
+        ]));
 
         $gsis = $this->table->getGlobalSecondaryIndices();
 
@@ -544,33 +523,27 @@ class DynamoDbTableTest extends \PHPUnit_Framework_TestCase
 
     public function testGetGlobalSecondaryIndicesWithPatternFilter()
     {
-        $this->mockClient->expects($this->once())
-            ->method('describeTable')
-            ->willReturn(new Result([
-                'Table' => [
-                    'TableName' => 'test-table',
-                    'AttributeDefinitions' => [
-                        ['AttributeName' => 'email', 'AttributeType' => 'S'],
-                        ['AttributeName' => 'age', 'AttributeType' => 'N'],
+        $this->mockClient->queueReturn('describeTable', new Result([
+            'Table' => [
+                'TableName' => 'test-table',
+                'AttributeDefinitions' => [
+                    ['AttributeName' => 'email', 'AttributeType' => 'S'],
+                    ['AttributeName' => 'age', 'AttributeType' => 'N'],
+                ],
+                'GlobalSecondaryIndexes' => [
+                    [
+                        'IndexName' => 'email-index',
+                        'KeySchema' => [['AttributeName' => 'email', 'KeyType' => 'HASH']],
+                        'Projection' => ['ProjectionType' => 'ALL'],
                     ],
-                    'GlobalSecondaryIndexes' => [
-                        [
-                            'IndexName' => 'email-index',
-                            'KeySchema' => [
-                                ['AttributeName' => 'email', 'KeyType' => 'HASH'],
-                            ],
-                            'Projection' => ['ProjectionType' => 'ALL'],
-                        ],
-                        [
-                            'IndexName' => 'age-index',
-                            'KeySchema' => [
-                                ['AttributeName' => 'age', 'KeyType' => 'HASH'],
-                            ],
-                            'Projection' => ['ProjectionType' => 'KEYS_ONLY'],
-                        ],
+                    [
+                        'IndexName' => 'age-index',
+                        'KeySchema' => [['AttributeName' => 'age', 'KeyType' => 'HASH']],
+                        'Projection' => ['ProjectionType' => 'KEYS_ONLY'],
                     ],
                 ],
-            ]));
+            ],
+        ]));
 
         $gsis = $this->table->getGlobalSecondaryIndices('/email/');
 
@@ -584,15 +557,12 @@ class DynamoDbTableTest extends \PHPUnit_Framework_TestCase
 
     public function testEnableStream()
     {
-        $this->mockClient->expects($this->once())
-            ->method('updateTable')
-            ->with($this->callback(function ($args) {
-                return $args['TableName'] === 'test-table'
-                    && $args['StreamSpecification']['StreamEnabled'] === true
-                    && $args['StreamSpecification']['StreamViewType'] === 'NEW_AND_OLD_IMAGES';
-            }));
-
         $this->table->enableStream();
+
+        $args = $this->mockClient->calls['updateTable'][0][0];
+        $this->assertSame('test-table', $args['TableName']);
+        $this->assertTrue($args['StreamSpecification']['StreamEnabled']);
+        $this->assertSame('NEW_AND_OLD_IMAGES', $args['StreamSpecification']['StreamViewType']);
     }
 
     // ================================================================
@@ -601,14 +571,11 @@ class DynamoDbTableTest extends \PHPUnit_Framework_TestCase
 
     public function testDisableStream()
     {
-        $this->mockClient->expects($this->once())
-            ->method('updateTable')
-            ->with($this->callback(function ($args) {
-                return $args['TableName'] === 'test-table'
-                    && $args['StreamSpecification']['StreamEnabled'] === false;
-            }));
-
         $this->table->disableStream();
+
+        $args = $this->mockClient->calls['updateTable'][0][0];
+        $this->assertSame('test-table', $args['TableName']);
+        $this->assertFalse($args['StreamSpecification']['StreamEnabled']);
     }
 
     // ================================================================
@@ -617,17 +584,15 @@ class DynamoDbTableTest extends \PHPUnit_Framework_TestCase
 
     public function testIsStreamEnabledReturnsTrue()
     {
-        $this->mockClient->expects($this->once())
-            ->method('describeTable')
-            ->willReturn(new Result([
-                'Table' => [
-                    'TableName' => 'test-table',
-                    'StreamSpecification' => [
-                        'StreamEnabled'  => true,
-                        'StreamViewType' => 'NEW_AND_OLD_IMAGES',
-                    ],
+        $this->mockClient->queueReturn('describeTable', new Result([
+            'Table' => [
+                'TableName' => 'test-table',
+                'StreamSpecification' => [
+                    'StreamEnabled'  => true,
+                    'StreamViewType' => 'NEW_AND_OLD_IMAGES',
                 ],
-            ]));
+            ],
+        ]));
 
         $viewType = null;
         $result   = $this->table->isStreamEnabled($viewType);
@@ -638,13 +603,11 @@ class DynamoDbTableTest extends \PHPUnit_Framework_TestCase
 
     public function testIsStreamEnabledReturnsFalseWhenNoStreamSpec()
     {
-        $this->mockClient->expects($this->once())
-            ->method('describeTable')
-            ->willReturn(new Result([
-                'Table' => [
-                    'TableName' => 'test-table',
-                ],
-            ]));
+        $this->mockClient->queueReturn('describeTable', new Result([
+            'Table' => [
+                'TableName' => 'test-table',
+            ],
+        ]));
 
         $viewType = null;
         $result   = $this->table->isStreamEnabled($viewType);

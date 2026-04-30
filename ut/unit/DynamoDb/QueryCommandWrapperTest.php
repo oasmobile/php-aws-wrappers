@@ -6,8 +6,9 @@ use Aws\Result;
 use GuzzleHttp\Promise\FulfilledPromise;
 use Oasis\Mlib\AwsWrappers\DynamoDb\QueryCommandWrapper;
 use Oasis\Mlib\AwsWrappers\DynamoDbIndex;
+use PHPUnit\Framework\TestCase;
 
-class QueryCommandWrapperTest extends \PHPUnit_Framework_TestCase
+class QueryCommandWrapperTest extends TestCase
 {
     /** @var StubDynamoDbClient */
     private $stub;
@@ -15,7 +16,7 @@ class QueryCommandWrapperTest extends \PHPUnit_Framework_TestCase
     /** @var QueryCommandWrapper */
     private $wrapper;
 
-    protected function setUp()
+    protected function setUp(): void
     {
         $this->stub    = new StubDynamoDbClient();
         $this->wrapper = new QueryCommandWrapper();

@@ -5,6 +5,7 @@ namespace Oasis\Mlib\AwsWrappers\Test\Unit;
 use Monolog\Logger;
 use Oasis\Mlib\AwsWrappers\SnsPublisher;
 use Oasis\Mlib\Logging\AwsSnsHandler;
+use PHPUnit\Framework\TestCase;
 
 /**
  * Stub SnsPublisher that records publish() calls without AWS interaction.
@@ -29,7 +30,7 @@ class StubSnsPublisher extends SnsPublisher
     }
 }
 
-class AwsSnsHandlerTest extends \PHPUnit_Framework_TestCase
+class AwsSnsHandlerTest extends TestCase
 {
     /** @var StubSnsPublisher */
     private $stubPublisher;
@@ -40,7 +41,7 @@ class AwsSnsHandlerTest extends \PHPUnit_Framework_TestCase
     /** @var Logger */
     private $logger;
 
-    protected function setUp()
+    protected function setUp(): void
     {
         $this->stubPublisher = new StubSnsPublisher();
         $this->handler       = new AwsSnsHandler($this->stubPublisher, 'Test Subject');
@@ -58,7 +59,7 @@ class AwsSnsHandlerTest extends \PHPUnit_Framework_TestCase
 
         $this->assertCount(1, $this->stubPublisher->publishCalls);
         $this->assertSame('Test Subject', $this->stubPublisher->publishCalls[0]['subject']);
-        $this->assertContains('Hello World', $this->stubPublisher->publishCalls[0]['body']);
+        $this->assertStringContainsString('Hello World', $this->stubPublisher->publishCalls[0]['body']);
     }
 
     public function testWritePublishesFormattedContent()
@@ -69,8 +70,8 @@ class AwsSnsHandlerTest extends \PHPUnit_Framework_TestCase
         $body = $this->stubPublisher->publishCalls[0]['body'];
 
         // Monolog's default LineFormatter includes the level name
-        $this->assertContains('ERROR', $body);
-        $this->assertContains('Something went wrong', $body);
+        $this->assertStringContainsString('ERROR', $body);
+        $this->assertStringContainsString('Something went wrong', $body);
     }
 
     // ================================================================
@@ -114,8 +115,8 @@ class AwsSnsHandlerTest extends \PHPUnit_Framework_TestCase
         $this->handler->handleBatch($records);
 
         $body = $this->stubPublisher->publishCalls[0]['body'];
-        $this->assertContains('Alpha', $body);
-        $this->assertContains('Beta', $body);
+        $this->assertStringContainsString('Alpha', $body);
+        $this->assertStringContainsString('Beta', $body);
     }
 
     public function testHandleBatchUsesSubject()
@@ -160,8 +161,8 @@ class AwsSnsHandlerTest extends \PHPUnit_Framework_TestCase
 
         // Only WARNING and above should be included
         $body = $this->stubPublisher->publishCalls[0]['body'];
-        $this->assertNotContains('Debug msg', $body);
-        $this->assertContains('Warning msg', $body);
+        $this->assertStringNotContainsString('Debug msg', $body);
+        $this->assertStringContainsString('Warning msg', $body);
     }
 
     // ================================================================
@@ -234,7 +235,7 @@ class AwsSnsHandlerTest extends \PHPUnit_Framework_TestCase
         $logger->error('Should publish');
 
         $this->assertCount(1, $publisher->publishCalls);
-        $this->assertContains('Should publish', $publisher->publishCalls[0]['body']);
+        $this->assertStringContainsString('Should publish', $publisher->publishCalls[0]['body']);
     }
 
     // ================================================================
@@ -270,7 +271,7 @@ class AwsSnsHandlerTest extends \PHPUnit_Framework_TestCase
         $this->logger->debug('日志消息 🔥');
 
         $this->assertCount(1, $this->stubPublisher->publishCalls);
-        $this->assertContains('日志消息 🔥', $this->stubPublisher->publishCalls[0]['body']);
+        $this->assertStringContainsString('日志消息 🔥', $this->stubPublisher->publishCalls[0]['body']);
     }
 
     // ================================================================

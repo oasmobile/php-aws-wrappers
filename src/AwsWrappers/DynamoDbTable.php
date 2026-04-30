@@ -83,7 +83,7 @@ class DynamoDbTable
                 $projectedFields[$idx]   = $escaped = '#' . $field;
                 $fieldsMapping[$escaped] = $field;
             }
-            $mappingArgs['ProjectionExpression']     = \implode($projectedFields, ', ');
+            $mappingArgs['ProjectionExpression']     = \implode(', ', $projectedFields);
             $mappingArgs['ExpressionAttributeNames'] = $fieldsMapping;
         }
         
@@ -126,7 +126,7 @@ class DynamoDbTable
         }
         call_user_func($flushCallback, 1);
         
-        \GuzzleHttp\Promise\each_limit(
+        \GuzzleHttp\Promise\Each::ofLimit(
             $promises,
             $concurrency,
             function (Result $result) use (&$unprocessed, &$returnSet) {
@@ -264,7 +264,7 @@ class DynamoDbTable
                 $projectedFields[$idx]   = $escaped = '#' . $field;
                 $fieldsMapping[$escaped] = $field;
             }
-            $requestArgs['ProjectionExpression']     = \implode($projectedFields, ', ');
+            $requestArgs['ProjectionExpression']     = \implode(', ', $projectedFields);
             $requestArgs['ExpressionAttributeNames'] = $fieldsMapping;
         }
         if ($is_consistent_read) {
@@ -968,7 +968,7 @@ class DynamoDbTable
         }
         call_user_func($flushCallback, 1);
         
-        \GuzzleHttp\Promise\each_limit(
+        \GuzzleHttp\Promise\Each::ofLimit(
             $promises,
             $concurrency,
             function (Result $result) use ($isPut, &$unprocessed) {

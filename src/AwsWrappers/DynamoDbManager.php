@@ -242,7 +242,7 @@ class DynamoDbManager
                 $promises[] = $promise;
             }
             
-            \GuzzleHttp\Promise\all($promises)->wait();
+            \GuzzleHttp\Promise\Utils::all($promises)->wait();
             if ($tableNames) {
                 if (time() - $started > $timeout) {
                     mwarning("Timed out, some tables are still in unready state: %s", implode(",", $tableNames));

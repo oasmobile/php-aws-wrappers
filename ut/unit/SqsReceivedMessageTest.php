@@ -4,8 +4,9 @@ namespace Oasis\Mlib\AwsWrappers\Test\Unit;
 
 use Oasis\Mlib\AwsWrappers\SqsQueue;
 use Oasis\Mlib\AwsWrappers\SqsReceivedMessage;
+use PHPUnit\Framework\TestCase;
 
-class SqsReceivedMessageTest extends \PHPUnit_Framework_TestCase
+class SqsReceivedMessageTest extends TestCase
 {
     /**
      * Helper: build a minimal valid SQS message array.
@@ -54,10 +55,8 @@ class SqsReceivedMessageTest extends \PHPUnit_Framework_TestCase
 
     public function testMd5ValidationThrowsOnMismatch()
     {
-        $this->setExpectedException(
-            \UnexpectedValueException::class,
-            "Body md5 doesn't match"
-        );
+        $this->expectException(\UnexpectedValueException::class);
+        $this->expectExceptionMessage("Body md5 doesn't match");
 
         new SqsReceivedMessage($this->buildMessageArray([
             'Body'      => 'test body',
@@ -218,10 +217,8 @@ class SqsReceivedMessageTest extends \PHPUnit_Framework_TestCase
 
     public function testGetAttributeThrowsOnUnknownDataType()
     {
-        $this->setExpectedException(
-            \UnexpectedValueException::class,
-            'Unknown data type'
-        );
+        $this->expectException(\UnexpectedValueException::class);
+        $this->expectExceptionMessage('Unknown data type');
 
         $msg = new SqsReceivedMessage($this->buildMessageArray([
             'MessageAttributes' => [
@@ -317,10 +314,8 @@ class SqsReceivedMessageTest extends \PHPUnit_Framework_TestCase
 
     public function testMd5OfAttributesValidationThrowsOnMismatch()
     {
-        $this->setExpectedException(
-            \UnexpectedValueException::class,
-            "Attribute md5 doesn't match"
-        );
+        $this->expectException(\UnexpectedValueException::class);
+        $this->expectExceptionMessage("Attribute md5 doesn't match");
 
         new SqsReceivedMessage($this->buildMessageArray([
             'MessageAttributes'      => [
@@ -426,10 +421,8 @@ class SqsReceivedMessageTest extends \PHPUnit_Framework_TestCase
 
     public function testMd5OfAttributesValidationThrowsOnUnknownDataType()
     {
-        $this->setExpectedException(
-            \UnexpectedValueException::class,
-            'Unknown data type'
-        );
+        $this->expectException(\UnexpectedValueException::class);
+        $this->expectExceptionMessage('Unknown data type');
 
         new SqsReceivedMessage($this->buildMessageArray([
             'MessageAttributes'      => [
@@ -448,7 +441,7 @@ class SqsReceivedMessageTest extends \PHPUnit_Framework_TestCase
 
     public function testConstructorThrowsWhenReceiptHandleMissing()
     {
-        $this->setExpectedException(\Exception::class);
+        $this->expectException(\Exception::class);
 
         new SqsReceivedMessage([
             'MessageId' => 'msg-001',
@@ -459,7 +452,7 @@ class SqsReceivedMessageTest extends \PHPUnit_Framework_TestCase
 
     public function testConstructorThrowsWhenBodyMissing()
     {
-        $this->setExpectedException(\Exception::class);
+        $this->expectException(\Exception::class);
 
         new SqsReceivedMessage([
             'MessageId'     => 'msg-001',

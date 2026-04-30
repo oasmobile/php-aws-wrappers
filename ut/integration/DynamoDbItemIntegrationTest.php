@@ -6,11 +6,13 @@
  * Time: 17:30
  */
 
-namespace Oasis\Mlib\AwsWrappers\Test;
+namespace Oasis\Mlib\AwsWrappers\Test\Integration;
 
 use Oasis\Mlib\AwsWrappers\DynamoDbItem;
+use Oasis\Mlib\AwsWrappers\Test\UTConfig;
+use PHPUnit\Framework\TestCase;
 
-class DynamoDbItemTest extends \PHPUnit_Framework_TestCase
+class DynamoDbItemIntegrationTest extends TestCase
 {
     public function testCreation()
     {

@@ -4,8 +4,9 @@ namespace Oasis\Mlib\AwsWrappers\Test\Unit;
 
 use Oasis\Mlib\AwsWrappers\DynamoDbIndex;
 use Oasis\Mlib\AwsWrappers\DynamoDbItem;
+use PHPUnit\Framework\TestCase;
 
-class DynamoDbIndexTest extends \PHPUnit_Framework_TestCase
+class DynamoDbIndexTest extends TestCase
 {
     // ── Constructor ──────────────────────────────────────────────
 

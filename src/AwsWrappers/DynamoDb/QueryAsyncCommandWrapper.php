@@ -65,7 +65,7 @@ class QueryAsyncCommandWrapper
                 }
                 $fieldsMapping[$escaped] = $field;
             }
-            $requestArgs['ProjectionExpression'] = \implode($projectedFields, ', ');
+            $requestArgs['ProjectionExpression'] = \implode(', ', $projectedFields);
         }
         if ($keyConditions) {
             $requestArgs['KeyConditionExpression'] = $keyConditions;

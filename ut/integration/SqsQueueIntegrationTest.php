@@ -6,14 +6,16 @@
  * Time: 16:29
  */
 
-namespace Oasis\Mlib\AwsWrappers\Test;
+namespace Oasis\Mlib\AwsWrappers\Test\Integration;
 
 use Oasis\Mlib\AwsWrappers\SqsQueue;
 use Oasis\Mlib\AwsWrappers\SqsReceivedMessage;
+use Oasis\Mlib\AwsWrappers\Test\UTConfig;
 use Oasis\Mlib\Utils\ArrayDataProvider;
 use Oasis\Mlib\Utils\DataProviderInterface;
+use PHPUnit\Framework\TestCase;
 
-class SqsQueueTest extends \PHPUnit_Framework_TestCase
+class SqsQueueIntegrationTest extends TestCase
 {
     const DEBUG = 0;
     
@@ -22,7 +24,7 @@ class SqsQueueTest extends \PHPUnit_Framework_TestCase
     /** @var  SqsQueue */
     protected $sqs;
     
-    public static function setUpBeforeClass()
+    public static function setUpBeforeClass(): void
     {
         parent::setUpBeforeClass();
         
@@ -42,7 +44,7 @@ class SqsQueueTest extends \PHPUnit_Framework_TestCase
         }
     }
     
-    public static function tearDownAfterClass()
+    public static function tearDownAfterClass(): void
     {
         $sqs = new SqsQueue(UTConfig::$awsConfig, self::$queueName);
         $sqs->deleteQueue();
@@ -50,7 +52,7 @@ class SqsQueueTest extends \PHPUnit_Framework_TestCase
         parent::tearDownAfterClass();
     }
     
-    protected function setUp()
+    protected function setUp(): void
     {
         parent::setUp();
         
@@ -111,7 +113,7 @@ class SqsQueueTest extends \PHPUnit_Framework_TestCase
             'Subject' => 'base64_serialize',
             'Message' => $mockedSerialization,
         ];
-        $this->sqs->sendMessage(\GuzzleHttp\json_encode($structrued));
+        $this->sqs->sendMessage(json_encode($structrued));
         $msg = $this->sqs->receiveMessage(5);
         $this->sqs->deleteMessage($msg);
         $this->assertTrue($msg instanceof SqsReceivedMessage);
@@ -128,7 +130,7 @@ class SqsQueueTest extends \PHPUnit_Framework_TestCase
         $ret = $this->sqs->sendMessage($msg);
         $this->assertFalse($ret);
         $failed = $this->sqs->getSendFailureMessages();
-        $this->assertContains('Invalid binary character', $failed[0]);
+        $this->assertStringContainsString('Invalid binary character', $failed[0]);
         $ret = $this->sqs->sendMessages(
             [
                 "x" => "\x8",
@@ -138,6 +140,6 @@ class SqsQueueTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals(1, count($ret));
         $failed = $this->sqs->getSendFailureMessages();
         $this->assertEquals(1, count($failed));
-        $this->assertContains('Invalid binary character', $failed["x"]);
+        $this->assertStringContainsString('Invalid binary character', $failed["x"]);
     }
 }

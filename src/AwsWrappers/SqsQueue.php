@@ -316,7 +316,7 @@ class SqsQueue implements EventDispatcherInterface,QueueInterface
             $promises[] = $promise;
         }
         
-        \GuzzleHttp\Promise\each_limit(
+        \GuzzleHttp\Promise\Each::ofLimit(
             $promises,
             $concurrency,
             function (Result $result) use (

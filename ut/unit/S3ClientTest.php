@@ -3,6 +3,35 @@
 namespace Oasis\Mlib\AwsWrappers\Test\Unit;
 
 use Oasis\Mlib\AwsWrappers\S3Client;
+use PHPUnit\Framework\TestCase;
+
+/**
+ * Minimal stub implementing Aws\CommandInterface for testing.
+ */
+class StubCommand implements \Aws\CommandInterface
+{
+    private string $name;
+    private array $args;
+
+    public function __construct(string $name, array $args)
+    {
+        $this->name = $name;
+        $this->args = $args;
+    }
+
+    public function getName() { return $this->name; }
+    public function hasParam($name) { return array_key_exists($name, $this->args); }
+    public function toArray() { return $this->args; }
+    public function getHandlerList() { throw new \RuntimeException('Not implemented'); }
+    public function offsetExists(mixed $offset): bool { return isset($this->args[$offset]); }
+    public function offsetGet(mixed $offset): mixed { return $this->args[$offset] ?? null; }
+    public function offsetSet(mixed $offset, mixed $value): void { $this->args[$offset] = $value; }
+    public function offsetUnset(mixed $offset): void { unset($this->args[$offset]); }
+    public function count(): int { return count($this->args); }
+    public function getIterator(): \Traversable { return new \ArrayIterator($this->args); }
+    /** @param mixed $name */
+    public function __get($name) { return $this->args[$name] ?? null; }
+}
 
 /**
  * Test subclass that captures the config passed to the parent Aws\S3\S3Client
@@ -43,13 +72,13 @@ class TestableS3Client extends S3Client
 
     public function getCommand($name, array $args = [])
     {
-        return (object)['name' => $name, 'args' => $args];
+        return new StubCommand($name, $args);
     }
 
-    public function createPresignedRequest($cmd, $expires)
+    public function createPresignedRequest(\Aws\CommandInterface $command, $expires, array $options = [])
     {
-        $bucket = $cmd->args['Bucket'];
-        $key    = $cmd->args['Key'];
+        $bucket = $command['Bucket'];
+        $key    = $command['Key'];
         $uri    = $this->stubbedPresignedUri
             ?: "https://s3.amazonaws.com/{$bucket}/{$key}?presigned=1";
 
@@ -75,7 +104,7 @@ class StubPresignedRequest
     }
 }
 
-class S3ClientTest extends \PHPUnit_Framework_TestCase
+class S3ClientTest extends TestCase
 {
     // ================================================================
     // Constructor: endpoint generation logic
@@ -165,8 +194,8 @@ class S3ClientTest extends \PHPUnit_Framework_TestCase
 
         $uri = $client->getPresignedUri('s3://my-bucket/path/to/file.txt');
 
-        $this->assertContains('my-bucket', $uri);
-        $this->assertContains('path/to/file.txt', $uri);
+        $this->assertStringContainsString('my-bucket', $uri);
+        $this->assertStringContainsString('path/to/file.txt', $uri);
     }
 
     public function testGetPresignedUriStripsLeadingSlash()
@@ -179,8 +208,8 @@ class S3ClientTest extends \PHPUnit_Framework_TestCase
         $uri = $client->getPresignedUri('s3://my-bucket//path/to/file.txt');
 
         // Leading slash should be stripped, double slashes collapsed
-        $this->assertContains('path/to/file.txt', $uri);
-        $this->assertNotContains('//path', $uri);
+        $this->assertStringContainsString('path/to/file.txt', $uri);
+        $this->assertStringNotContainsString('//path', $uri);
     }
 
     public function testGetPresignedUriCollapsesMultipleSlashes()
@@ -192,7 +221,7 @@ class S3ClientTest extends \PHPUnit_Framework_TestCase
 
         $uri = $client->getPresignedUri('s3://bucket/a///b//c.txt');
 
-        $this->assertContains('a/b/c.txt', $uri);
+        $this->assertStringContainsString('a/b/c.txt', $uri);
     }
 
     public function testGetPresignedUriWithCustomExpiry()
@@ -214,10 +243,8 @@ class S3ClientTest extends \PHPUnit_Framework_TestCase
 
     public function testGetPresignedUriThrowsOnInvalidPath()
     {
-        $this->setExpectedException(
-            \InvalidArgumentException::class,
-            'path should be a full path starting with s3://'
-        );
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('path should be a full path starting with s3://');
 
         $client = new TestableS3Client([
             'region'      => 'us-east-1',
@@ -229,10 +256,8 @@ class S3ClientTest extends \PHPUnit_Framework_TestCase
 
     public function testGetPresignedUriThrowsOnHttpPath()
     {
-        $this->setExpectedException(
-            \InvalidArgumentException::class,
-            'path should be a full path starting with s3://'
-        );
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('path should be a full path starting with s3://');
 
         $client = new TestableS3Client([
             'region'      => 'us-east-1',
@@ -244,10 +269,8 @@ class S3ClientTest extends \PHPUnit_Framework_TestCase
 
     public function testGetPresignedUriThrowsOnEmptyString()
     {
-        $this->setExpectedException(
-            \InvalidArgumentException::class,
-            'path should be a full path starting with s3://'
-        );
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('path should be a full path starting with s3://');
 
         $client = new TestableS3Client([
             'region'      => 'us-east-1',
@@ -270,7 +293,7 @@ class S3ClientTest extends \PHPUnit_Framework_TestCase
 
         $uri = $client->getPresignedUri('s3://bucket/key.txt');
 
-        $this->assertInternalType('string', $uri);
+        $this->assertIsString($uri);
     }
 
     // ================================================================
@@ -286,6 +309,6 @@ class S3ClientTest extends \PHPUnit_Framework_TestCase
 
         $uri = $client->getPresignedUri('s3://bucket/文件/数据.csv');
 
-        $this->assertContains('文件/数据.csv', $uri);
+        $this->assertStringContainsString('文件/数据.csv', $uri);
     }
 }

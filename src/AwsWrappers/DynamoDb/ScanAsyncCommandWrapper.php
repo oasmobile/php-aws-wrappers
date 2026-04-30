@@ -67,7 +67,7 @@ class ScanAsyncCommandWrapper
                 }
                 $fieldsMapping[$escaped] = $field;
             }
-            $requestArgs['ProjectionExpression'] = \implode($projectedFields, ', ');
+            $requestArgs['ProjectionExpression'] = \implode(', ', $projectedFields);
         }
         if ($totalSegments > 1) {
             $requestArgs['Segment']       = $segment;

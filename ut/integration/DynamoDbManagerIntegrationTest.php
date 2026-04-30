@@ -6,24 +6,26 @@
  * Time: 15:25
  */
 
-namespace Oasis\Mlib\AwsWrappers\Test;
+namespace Oasis\Mlib\AwsWrappers\Test\Integration;
 
 use Aws\DynamoDb\Exception\DynamoDbException;
 use Oasis\Mlib\AwsWrappers\DynamoDbIndex;
 use Oasis\Mlib\AwsWrappers\DynamoDbManager;
+use Oasis\Mlib\AwsWrappers\Test\UTConfig;
+use PHPUnit\Framework\TestCase;
 
-class DynamoDbManagerTest extends \PHPUnit_Framework_TestCase
+class DynamoDbManagerIntegrationTest extends TestCase
 {
     protected static $tableName;
     
-    public static function setUpBeforeClass()
+    public static function setUpBeforeClass(): void
     {
         parent::setUpBeforeClass();
         
         self::$tableName = 'ut-ddbm-' . time();
     }
     
-    public static function tearDownAfterClass()
+    public static function tearDownAfterClass(): void
     {
         
         $dbm = new DynamoDbManager(UTConfig::$awsConfig);

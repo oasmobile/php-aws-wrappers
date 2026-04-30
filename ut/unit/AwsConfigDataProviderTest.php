@@ -5,8 +5,9 @@ namespace Oasis\Mlib\AwsWrappers\Test\Unit;
 use Oasis\Mlib\AwsWrappers\AwsConfigDataProvider;
 use Oasis\Mlib\AwsWrappers\TemporaryCredential;
 use Oasis\Mlib\Utils\Exceptions\MandatoryValueMissingException;
+use PHPUnit\Framework\TestCase;
 
-class AwsConfigDataProviderTest extends \PHPUnit_Framework_TestCase
+class AwsConfigDataProviderTest extends TestCase
 {
     /**
      * @var string|false Original AWS_ACCESS_KEY_ID env value
@@ -23,7 +24,7 @@ class AwsConfigDataProviderTest extends \PHPUnit_Framework_TestCase
      */
     private $origSessionToken;
 
-    protected function setUp()
+    protected function setUp(): void
     {
         // Save original env values
         $this->origAccessKeyId     = getenv('AWS_ACCESS_KEY_ID');
@@ -36,7 +37,7 @@ class AwsConfigDataProviderTest extends \PHPUnit_Framework_TestCase
         putenv('AWS_SESSION_TOKEN');
     }
 
-    protected function tearDown()
+    protected function tearDown(): void
     {
         // Restore original env values
         if ($this->origAccessKeyId !== false) {
@@ -62,10 +63,8 @@ class AwsConfigDataProviderTest extends \PHPUnit_Framework_TestCase
 
     public function testThrowsWhenRegionMissing()
     {
-        $this->setExpectedException(
-            MandatoryValueMissingException::class,
-            'Region must be specified'
-        );
+        $this->expectException(MandatoryValueMissingException::class);
+        $this->expectExceptionMessage('Region must be specified');
 
         new AwsConfigDataProvider([
             'credentials' => ['key' => 'k', 'secret' => 's'],
@@ -123,7 +122,7 @@ class AwsConfigDataProviderTest extends \PHPUnit_Framework_TestCase
 
         $config = $dp->getConfig();
 
-        $this->assertInternalType('array', $config['credentials']);
+        $this->assertIsArray($config['credentials']);
         $this->assertSame('AKID_TEMP', $config['credentials']['key']);
         $this->assertSame('SECRET_TEMP', $config['credentials']['secret']);
         $this->assertSame('SESSION_TOKEN', $config['credentials']['token']);
@@ -202,10 +201,8 @@ class AwsConfigDataProviderTest extends \PHPUnit_Framework_TestCase
 
     public function testThrowsWhenNoCredentialsProvided()
     {
-        $this->setExpectedException(
-            MandatoryValueMissingException::class,
-            'Credentials information not provided'
-        );
+        $this->expectException(MandatoryValueMissingException::class);
+        $this->expectExceptionMessage('Credentials information not provided');
 
         new AwsConfigDataProvider([
             'region' => 'us-east-1',
@@ -214,10 +211,8 @@ class AwsConfigDataProviderTest extends \PHPUnit_Framework_TestCase
 
     public function testThrowsWhenIamRoleFalse()
     {
-        $this->setExpectedException(
-            MandatoryValueMissingException::class,
-            'Credentials information not provided'
-        );
+        $this->expectException(MandatoryValueMissingException::class);
+        $this->expectExceptionMessage('Credentials information not provided');
 
         new AwsConfigDataProvider([
             'region'  => 'us-east-1',
@@ -230,10 +225,8 @@ class AwsConfigDataProviderTest extends \PHPUnit_Framework_TestCase
         putenv('AWS_ACCESS_KEY_ID=AKID_ONLY');
         // AWS_SECRET_ACCESS_KEY is not set
 
-        $this->setExpectedException(
-            MandatoryValueMissingException::class,
-            'Credentials information not provided'
-        );
+        $this->expectException(MandatoryValueMissingException::class);
+        $this->expectExceptionMessage('Credentials information not provided');
 
         new AwsConfigDataProvider([
             'region' => 'us-east-1',
@@ -332,5 +325,122 @@ class AwsConfigDataProviderTest extends \PHPUnit_Framework_TestCase
 
         $config = $dp->getConfig();
         $this->assertSame('区域-1', $config['region']);
+    }
+
+    // ================================================================
+    // IAM Role: cache adapter type (symfony/cache replacement)
+    // Requirements: 5.2
+    // ================================================================
+
+    /**
+     * Extracts the cache adapter instance from the closure returned by
+     * CredentialProvider::cache(). Uses Reflection to inspect the closure's
+     * bound variables and find the $cache parameter.
+     *
+     * @param callable $credentialsClosure
+     *
+     * @return object|null The cache adapter instance, or null if not found
+     */
+    private function extractCacheAdapterFromClosure($credentialsClosure)
+    {
+        $reflection = new \ReflectionFunction($credentialsClosure);
+        $staticVars = $reflection->getStaticVariables();
+
+        // CredentialProvider::cache() binds $cache in the returned closure
+        if (isset($staticVars['cache'])) {
+            return $staticVars['cache'];
+        }
+
+        return null;
+    }
+
+    /**
+     * Verifies that IAM Role credential caching uses Aws\Psr16CacheAdapter
+     * (backed by symfony/cache) instead of the deprecated Aws\DoctrineCacheAdapter.
+     *
+     * RED test: will fail until AwsConfigDataProvider is updated to use
+     * Psr16CacheAdapter + Symfony\Component\Cache\Psr16Cache.
+     */
+    public function testIamRoleCacheAdapterIsPsr16WithCustomPath()
+    {
+        $dp = new AwsConfigDataProvider([
+            'region'  => 'us-east-1',
+            'iamrole' => '/tmp/test-cache-psr16',
+        ]);
+
+        $config = $dp->getConfig();
+        $this->assertTrue(is_callable($config['credentials']));
+
+        $cacheAdapter = $this->extractCacheAdapterFromClosure($config['credentials']);
+        $this->assertNotNull($cacheAdapter, 'Cache adapter should be captured in the credentials closure');
+
+        // After symfony/cache replacement, the adapter must be Psr16CacheAdapter
+        $actualClass = get_class($cacheAdapter);
+        $this->assertSame(
+            'Aws\Psr16CacheAdapter',
+            $actualClass,
+            sprintf(
+                'IAM Role credentials should use Aws\Psr16CacheAdapter, but got %s',
+                $actualClass
+            )
+        );
+    }
+
+    /**
+     * Verifies that IAM Role credential caching with default path (iamrole=true)
+     * also uses Aws\Psr16CacheAdapter.
+     *
+     * RED test: will fail until AwsConfigDataProvider is updated.
+     */
+    public function testIamRoleCacheAdapterIsPsr16WithDefaultPath()
+    {
+        $dp = new AwsConfigDataProvider([
+            'region'  => 'us-east-1',
+            'iamrole' => true,
+        ]);
+
+        $config = $dp->getConfig();
+        $this->assertTrue(is_callable($config['credentials']));
+
+        $cacheAdapter = $this->extractCacheAdapterFromClosure($config['credentials']);
+        $this->assertNotNull($cacheAdapter, 'Cache adapter should be captured in the credentials closure');
+
+        $actualClass = get_class($cacheAdapter);
+        $this->assertSame(
+            'Aws\Psr16CacheAdapter',
+            $actualClass,
+            sprintf(
+                'IAM Role credentials should use Aws\Psr16CacheAdapter, but got %s',
+                $actualClass
+            )
+        );
+    }
+
+    /**
+     * Verifies that the deprecated Aws\DoctrineCacheAdapter is NOT used
+     * for IAM Role credential caching.
+     *
+     * RED test: will fail because current code still uses DoctrineCacheAdapter.
+     */
+    public function testIamRoleCacheAdapterIsNotDoctrine()
+    {
+        $dp = new AwsConfigDataProvider([
+            'region'  => 'us-east-1',
+            'iamrole' => '/tmp/test-cache-no-doctrine',
+        ]);
+
+        $config = $dp->getConfig();
+        $cacheAdapter = $this->extractCacheAdapterFromClosure($config['credentials']);
+        $this->assertNotNull($cacheAdapter);
+
+        // Cannot use assertNotInstanceOf because Aws\DoctrineCacheAdapter
+        // depends on Doctrine\Common\Cache\Cache which is no longer installed.
+        // Use class_exists (without autoload) + get_class instead.
+        $actualClass = get_class($cacheAdapter);
+        $this->assertNotSame(
+            'Aws\DoctrineCacheAdapter',
+            $actualClass,
+            'IAM Role credentials should no longer use the deprecated DoctrineCacheAdapter'
+        );
     }
 }

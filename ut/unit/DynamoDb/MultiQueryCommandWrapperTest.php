@@ -6,8 +6,9 @@ use Aws\Result;
 use GuzzleHttp\Promise\FulfilledPromise;
 use Oasis\Mlib\AwsWrappers\DynamoDb\MultiQueryCommandWrapper;
 use Oasis\Mlib\AwsWrappers\DynamoDbIndex;
+use PHPUnit\Framework\TestCase;
 
-class MultiQueryCommandWrapperTest extends \PHPUnit_Framework_TestCase
+class MultiQueryCommandWrapperTest extends TestCase
 {
     /** @var StubDynamoDbClient */
     private $stub;
@@ -15,7 +16,7 @@ class MultiQueryCommandWrapperTest extends \PHPUnit_Framework_TestCase
     /** @var MultiQueryCommandWrapper */
     private $wrapper;
 
-    protected function setUp()
+    protected function setUp(): void
     {
         $this->stub    = new StubDynamoDbClient();
         $this->wrapper = new MultiQueryCommandWrapper();
@@ -197,8 +198,8 @@ class MultiQueryCommandWrapperTest extends \PHPUnit_Framework_TestCase
 
         // Verify the key condition includes both hash and range
         $args = $this->stub->queryAsyncCalls[0];
-        $this->assertContains('AND', $args['KeyConditionExpression']);
-        $this->assertContains('#sk > :skval', $args['KeyConditionExpression']);
+        $this->assertStringContainsString('AND', $args['KeyConditionExpression']);
+        $this->assertStringContainsString('#sk > :skval', $args['KeyConditionExpression']);
     }
 
     // ── Pagination within a single hash key ──────────────────────

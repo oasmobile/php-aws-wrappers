@@ -4,8 +4,9 @@ namespace Oasis\Mlib\AwsWrappers\Test\Unit;
 
 use Oasis\Mlib\AwsWrappers\DynamoDbItem;
 use Oasis\Mlib\Utils\Exceptions\InvalidDataTypeException;
+use PHPUnit\Framework\TestCase;
 
-class DynamoDbItemTest extends \PHPUnit_Framework_TestCase
+class DynamoDbItemTest extends TestCase
 {
     // ---------------------------------------------------------------
     // 1. createFromArray — basic types
@@ -257,14 +258,14 @@ class DynamoDbItemTest extends \PHPUnit_Framework_TestCase
 
     public function testOffsetGetThrowsOutOfBoundsForMissingKey()
     {
-        $this->setExpectedException(\OutOfBoundsException::class);
+        $this->expectException(\OutOfBoundsException::class);
         $item = DynamoDbItem::createFromArray([]);
         $item['nonexistent'];
     }
 
     public function testOffsetUnsetThrowsOutOfBoundsForMissingKey()
     {
-        $this->setExpectedException(\OutOfBoundsException::class);
+        $this->expectException(\OutOfBoundsException::class);
         $item = DynamoDbItem::createFromArray([]);
         unset($item['nonexistent']);
     }
@@ -275,7 +276,7 @@ class DynamoDbItemTest extends \PHPUnit_Framework_TestCase
 
     public function testToUntypedValueThrowsOnNonArray()
     {
-        $this->setExpectedException(InvalidDataTypeException::class);
+        $this->expectException(InvalidDataTypeException::class);
         // createFromTypedArray stores raw data; toArray calls toUntypedValue
         $item = DynamoDbItem::createFromTypedArray(['bad' => 'not-an-array']);
         $item->toArray();
@@ -283,14 +284,14 @@ class DynamoDbItemTest extends \PHPUnit_Framework_TestCase
 
     public function testToUntypedValueThrowsOnArrayWithMultipleKeys()
     {
-        $this->setExpectedException(InvalidDataTypeException::class);
+        $this->expectException(InvalidDataTypeException::class);
         $item = DynamoDbItem::createFromTypedArray(['bad' => ['S' => 'a', 'N' => '1']]);
         $item->toArray();
     }
 
     public function testToUntypedValueThrowsOnEmptyArray()
     {
-        $this->setExpectedException(InvalidDataTypeException::class);
+        $this->expectException(InvalidDataTypeException::class);
         $item = DynamoDbItem::createFromTypedArray(['bad' => []]);
         $item->toArray();
     }
@@ -301,7 +302,7 @@ class DynamoDbItemTest extends \PHPUnit_Framework_TestCase
 
     public function testUnknownTypeStringThrowsRuntimeException()
     {
-        $this->setExpectedException(\RuntimeException::class);
+        $this->expectException(\RuntimeException::class);
         DynamoDbItem::createFromArray(
             ['val' => 'test'],
             ['val' => 'UNKNOWN_TYPE_XYZ']
@@ -314,7 +315,7 @@ class DynamoDbItemTest extends \PHPUnit_Framework_TestCase
 
     public function testUnsupportedPhpTypeThrowsInvalidDataTypeException()
     {
-        $this->setExpectedException(InvalidDataTypeException::class);
+        $this->expectException(InvalidDataTypeException::class);
         DynamoDbItem::createFromArray(['obj' => new \stdClass()]);
     }
 
@@ -402,7 +403,7 @@ class DynamoDbItemTest extends \PHPUnit_Framework_TestCase
 
     public function testToUntypedValueThrowsOnUnrecognizedTypeInTypedArray()
     {
-        $this->setExpectedException(InvalidDataTypeException::class);
+        $this->expectException(InvalidDataTypeException::class);
         $item = DynamoDbItem::createFromTypedArray(['field' => ['UNKNOWN' => 'val']]);
         $item->toArray();
     }

@@ -97,7 +97,7 @@ class MultiQueryCommandWrapper
         
         while (!$stopped && !$queue->isEmpty()) {
             /** @noinspection PhpUnusedParameterInspection */
-            \GuzzleHttp\Promise\each_limit(
+            \GuzzleHttp\Promise\Each::ofLimit(
                 $generator(),
                 $concurrency,
                 function (Result $result, $hashKeyValue) use ($callback, $queue, &$stopped) {

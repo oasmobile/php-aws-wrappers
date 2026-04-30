@@ -5,8 +5,9 @@ namespace Oasis\Mlib\AwsWrappers\Test\Unit\DynamoDb;
 use GuzzleHttp\Promise\FulfilledPromise;
 use Oasis\Mlib\AwsWrappers\DynamoDb\ScanAsyncCommandWrapper;
 use Oasis\Mlib\AwsWrappers\DynamoDbIndex;
+use PHPUnit\Framework\TestCase;
 
-class ScanAsyncCommandWrapperTest extends \PHPUnit_Framework_TestCase
+class ScanAsyncCommandWrapperTest extends TestCase
 {
     /** @var StubDynamoDbClient */
     private $stub;
@@ -14,7 +15,7 @@ class ScanAsyncCommandWrapperTest extends \PHPUnit_Framework_TestCase
     /** @var ScanAsyncCommandWrapper */
     private $wrapper;
 
-    protected function setUp()
+    protected function setUp(): void
     {
         $this->stub    = new StubDynamoDbClient();
         $this->wrapper = new ScanAsyncCommandWrapper();
@@ -189,7 +190,7 @@ class ScanAsyncCommandWrapperTest extends \PHPUnit_Framework_TestCase
 
     public function testScanProjectedFieldsConflictThrowsException()
     {
-        $this->setExpectedException(\InvalidArgumentException::class);
+        $this->expectException(\InvalidArgumentException::class);
 
         $this->stub->scanAsyncResults = [new FulfilledPromise('ok')];
 

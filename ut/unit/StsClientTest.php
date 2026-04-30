@@ -4,6 +4,7 @@ namespace Oasis\Mlib\AwsWrappers\Test\Unit;
 
 use Oasis\Mlib\AwsWrappers\StsClient;
 use Oasis\Mlib\AwsWrappers\TemporaryCredential;
+use PHPUnit\Framework\TestCase;
 
 /**
  * Test subclass that bypasses AwsConfigDataProvider + real STS client
@@ -39,7 +40,7 @@ class TestableStsClient extends StsClient
     }
 }
 
-class StsClientTest extends \PHPUnit_Framework_TestCase
+class StsClientTest extends TestCase
 {
     // ================================================================
     // getTemporaryCredential: basic behavior

@@ -6,13 +6,15 @@
  * Time: 16:55
  */
 
-namespace Oasis\Mlib\AwsWrappers\Test;
+namespace Oasis\Mlib\AwsWrappers\Test\Integration;
 
 use Aws\S3\Exception\S3Exception;
 use Oasis\Mlib\AwsWrappers\S3Client;
 use Oasis\Mlib\AwsWrappers\StsClient;
+use Oasis\Mlib\AwsWrappers\Test\UTConfig;
+use PHPUnit\Framework\TestCase;
 
-class StsClientTest extends \PHPUnit_Framework_TestCase
+class StsClientIntegrationTest extends TestCase
 {
     public function testGetTempToken()
     {

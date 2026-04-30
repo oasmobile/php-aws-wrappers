@@ -6,15 +6,17 @@
  * Time: 16:29
  */
 
-namespace Oasis\Mlib\AwsWrappers\Test;
+namespace Oasis\Mlib\AwsWrappers\Test\Integration;
 
 use Aws\DynamoDb\Exception\DynamoDbException;
 use Oasis\Mlib\AwsWrappers\DynamoDbIndex;
 use Oasis\Mlib\AwsWrappers\DynamoDbItem;
 use Oasis\Mlib\AwsWrappers\DynamoDbManager;
 use Oasis\Mlib\AwsWrappers\DynamoDbTable;
+use Oasis\Mlib\AwsWrappers\Test\UTConfig;
+use PHPUnit\Framework\TestCase;
 
-class DynamoDbTableTest extends \PHPUnit_Framework_TestCase
+class DynamoDbTableIntegrationTest extends TestCase
 {
     const DEBUG = 0;
     protected static $tableName;
@@ -22,7 +24,7 @@ class DynamoDbTableTest extends \PHPUnit_Framework_TestCase
     /** @var  DynamoDbTable */
     protected $table;
     
-    public static function setUpBeforeClass()
+    public static function setUpBeforeClass(): void
     {
         parent::setUpBeforeClass();
         
@@ -56,7 +58,7 @@ class DynamoDbTableTest extends \PHPUnit_Framework_TestCase
         }
     }
     
-    public static function tearDownAfterClass()
+    public static function tearDownAfterClass(): void
     {
         if (!self::DEBUG) {
             $manager = new DynamoDbManager(UTConfig::$awsConfig);
@@ -67,7 +69,7 @@ class DynamoDbTableTest extends \PHPUnit_Framework_TestCase
         parent::tearDownAfterClass();
     }
     
-    protected function setUp()
+    protected function setUp(): void
     {
         parent::setUp();
         
@@ -431,13 +433,13 @@ class DynamoDbTableTest extends \PHPUnit_Framework_TestCase
         );
         foreach ($result as $item) {
             $this->assertArrayHasKey('id', $item);
-            $this->assertArrayHasKey('city', $item, \GuzzleHttp\json_encode($item));
+            $this->assertArrayHasKey('city', $item, json_encode($item));
             $this->assertArrayNotHasKey('code', $item);
         }
         $this->table->scanAndRun(
             function ($item) {
                 $this->assertArrayHasKey('id', $item);
-                $this->assertArrayHasKey('city', $item, \GuzzleHttp\json_encode($item));
+                $this->assertArrayHasKey('city', $item, json_encode($item));
                 $this->assertArrayNotHasKey('code', $item);
             },
             '#id > :id',
@@ -469,13 +471,13 @@ class DynamoDbTableTest extends \PHPUnit_Framework_TestCase
         );
         foreach ($result as $item) {
             $this->assertArrayHasKey('id', $item);
-            $this->assertArrayHasKey('city', $item, \GuzzleHttp\json_encode($item));
+            $this->assertArrayHasKey('city', $item, json_encode($item));
             $this->assertArrayNotHasKey('code', $item);
         }
         $this->table->queryAndRun(
             function ($item) {
                 $this->assertArrayHasKey('id', $item);
-                $this->assertArrayHasKey('city', $item, \GuzzleHttp\json_encode($item));
+                $this->assertArrayHasKey('city', $item, json_encode($item));
                 $this->assertArrayNotHasKey('code', $item);
             },
             '#id = :id',

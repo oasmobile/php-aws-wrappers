@@ -3,6 +3,7 @@
 namespace Oasis\Mlib\AwsWrappers\Test\Unit;
 
 use Oasis\Mlib\AwsWrappers\SnsPublisher;
+use PHPUnit\Framework\TestCase;
 
 /**
  * Test subclass that bypasses AwsConfigDataProvider + real SnsClient
@@ -31,7 +32,7 @@ class StubSnsClient
     }
 }
 
-class SnsPublisherTest extends \PHPUnit_Framework_TestCase
+class SnsPublisherTest extends TestCase
 {
     /** @var StubSnsClient */
     private $stubClient;
@@ -39,7 +40,7 @@ class SnsPublisherTest extends \PHPUnit_Framework_TestCase
     /** @var TestableSnsPublisher */
     private $publisher;
 
-    protected function setUp()
+    protected function setUp(): void
     {
         $this->stubClient = new StubSnsClient();
         $this->publisher  = new TestableSnsPublisher($this->stubClient, 'arn:aws:sns:us-east-1:123456789:test-topic');
@@ -210,9 +211,9 @@ class SnsPublisherTest extends \PHPUnit_Framework_TestCase
 
         $message = json_decode($this->stubClient->publishCalls[0]['Message'], true);
 
-        $this->assertContains('<wp:Title>MPNS body</wp:Title>', $message[SnsPublisher::CHANNEL_MPNS]);
-        $this->assertContains('<wp:Count>1</wp:Count>', $message[SnsPublisher::CHANNEL_MPNS]);
-        $this->assertContains('<?xml version="1.0"', $message[SnsPublisher::CHANNEL_MPNS]);
+        $this->assertStringContainsString('<wp:Title>MPNS body</wp:Title>', $message[SnsPublisher::CHANNEL_MPNS]);
+        $this->assertStringContainsString('<wp:Count>1</wp:Count>', $message[SnsPublisher::CHANNEL_MPNS]);
+        $this->assertStringContainsString('<?xml version="1.0"', $message[SnsPublisher::CHANNEL_MPNS]);
     }
 
     public function testPublishMpnsChannelEscapesXmlEntities()
@@ -222,7 +223,7 @@ class SnsPublisherTest extends \PHPUnit_Framework_TestCase
         $message = json_decode($this->stubClient->publishCalls[0]['Message'], true);
 
         // htmlentities with ENT_XML1 should escape & and < >
-        $this->assertContains('A &amp; B &lt;C&gt;', $message[SnsPublisher::CHANNEL_MPNS]);
+        $this->assertStringContainsString('A &amp; B &lt;C&gt;', $message[SnsPublisher::CHANNEL_MPNS]);
     }
 
     // ================================================================
