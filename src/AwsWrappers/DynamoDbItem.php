@@ -1,10 +1,4 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: minhao
- * Date: 2015-10-29
- * Time: 14:48
- */
 
 namespace Oasis\Mlib\AwsWrappers;
 
@@ -15,17 +9,14 @@ class DynamoDbItem implements \ArrayAccess
     const ATTRIBUTE_TYPE_STRING = 'S';
     const ATTRIBUTE_TYPE_BINARY = 'B';
     const ATTRIBUTE_TYPE_NUMBER = 'N';
-//    const ATTRIBUTE_TYPE_STRING_SET = 'SS';
-//    const ATTRIBUTE_TYPE_BINARY_SET = 'BS';
-//    const ATTRIBUTE_TYPE_NUMBER_SET = 'NS';
-    const ATTRIBUTE_TYPE_LIST = 'L';
-    const ATTRIBUTE_TYPE_MAP  = 'M';
-    const ATTRIBUTE_TYPE_BOOL = 'BOOL';
-    const ATTRIBUTE_TYPE_NULL = 'NULL';
+    const ATTRIBUTE_TYPE_LIST   = 'L';
+    const ATTRIBUTE_TYPE_MAP    = 'M';
+    const ATTRIBUTE_TYPE_BOOL   = 'BOOL';
+    const ATTRIBUTE_TYPE_NULL   = 'NULL';
     
-    protected $data = [];
+    protected array $data = [];
     
-    public static function createFromTypedArray(array $typed_value)
+    public static function createFromTypedArray(array $typed_value): static
     {
         $ret       = new static;
         $ret->data = $typed_value;
@@ -33,7 +24,7 @@ class DynamoDbItem implements \ArrayAccess
         return $ret;
     }
     
-    public static function createFromArray(array $normal_value, $known_types = [])
+    public static function createFromArray(array $normal_value, array $known_types = []): static
     {
         $ret = new static;
         foreach ($normal_value as $k => &$v) {
@@ -43,7 +34,7 @@ class DynamoDbItem implements \ArrayAccess
         return $ret;
     }
     
-    protected static function toUntypedValue(&$v)
+    protected static function toUntypedValue(mixed &$v): mixed
     {
         if (!is_array($v) || count($v) != 1) {
             throw new InvalidDataTypeException("Value used is not typed value, value = " . json_encode($v));
@@ -51,46 +42,28 @@ class DynamoDbItem implements \ArrayAccess
         $value = reset($v);
         $type  = key($v);
         
-        switch ($type) {
-            case self::ATTRIBUTE_TYPE_STRING:
-                return strval($value);
-                break;
-            case self::ATTRIBUTE_TYPE_BINARY:
-                return base64_decode($value);
-                break;
-            case self::ATTRIBUTE_TYPE_BOOL:
-                return boolval($value);
-                break;
-            case self::ATTRIBUTE_TYPE_NULL:
-                return null;
-                break;
-            case self::ATTRIBUTE_TYPE_NUMBER:
-                if (intval($value) == $value) {
-                    return intval($value);
-                }
-                else {
-                    return floatval($value);
-                }
-                break;
-            case self::ATTRIBUTE_TYPE_LIST:
-            case self::ATTRIBUTE_TYPE_MAP:
+        return match ($type) {
+            self::ATTRIBUTE_TYPE_STRING => strval($value),
+            self::ATTRIBUTE_TYPE_BINARY => base64_decode($value),
+            self::ATTRIBUTE_TYPE_BOOL   => boolval($value),
+            self::ATTRIBUTE_TYPE_NULL   => null,
+            self::ATTRIBUTE_TYPE_NUMBER => (intval($value) == $value) ? intval($value) : floatval($value),
+            self::ATTRIBUTE_TYPE_LIST,
+            self::ATTRIBUTE_TYPE_MAP    => (function () use ($value, &$v): array {
                 if (!is_array($value)) {
-                    throw new InvalidDataTypeException("The value is expected to be an array! $v = " . json_encode($v));
+                    throw new InvalidDataTypeException("The value is expected to be an array! \$v = " . json_encode($v));
                 }
                 $ret = [];
                 foreach ($value as $k => &$vv) {
                     $ret[$k] = static::toUntypedValue($vv);
                 }
-                
                 return $ret;
-                break;
-            default:
-                throw new InvalidDataTypeException("Type $type is not recognized!");
-                break;
-        }
+            })(),
+            default => throw new InvalidDataTypeException("Type $type is not recognized!"),
+        };
     }
     
-    protected static function toTypedValue(&$v, $type = null)
+    protected static function toTypedValue(mixed &$v, ?string $type = null): array
     {
         if (!$type) {
             $type = static::determineAttributeType($v);
@@ -105,7 +78,6 @@ class DynamoDbItem implements \ArrayAccess
                     return [self::ATTRIBUTE_TYPE_NULL => true];
                 }
             }
-                break;
             case self::ATTRIBUTE_TYPE_BINARY: {
                 if (!$v) {
                     return [self::ATTRIBUTE_TYPE_NULL => true];
@@ -114,13 +86,10 @@ class DynamoDbItem implements \ArrayAccess
                     return [$type => base64_encode($v)];
                 }
             }
-                break;
             case self::ATTRIBUTE_TYPE_BOOL:
                 return [$type => boolval($v)];
-                break;
             case self::ATTRIBUTE_TYPE_NULL:
                 return [$type => true];
-                break;
             case self::ATTRIBUTE_TYPE_NUMBER: {
                 if (!is_numeric($v)) {
                     return [$type => "0"];
@@ -132,7 +101,6 @@ class DynamoDbItem implements \ArrayAccess
                     return [$type => strval(floatval($v))];
                 }
             }
-                break;
             case self::ATTRIBUTE_TYPE_LIST:
             case self::ATTRIBUTE_TYPE_MAP: {
                 $children = [];
@@ -142,7 +110,6 @@ class DynamoDbItem implements \ArrayAccess
                 
                 return [$type => $children];
             }
-                break;
             default: {
                 $const_key = __CLASS__ . "::ATTRIBUTE_TYPE_" . strtoupper($type);
                 if (defined($const_key)) {
@@ -157,7 +124,7 @@ class DynamoDbItem implements \ArrayAccess
         }
     }
     
-    protected static function determineAttributeType(&$v)
+    protected static function determineAttributeType(mixed &$v): string
     {
         if (is_string($v)) {
             return self::ATTRIBUTE_TYPE_STRING;
@@ -188,7 +155,7 @@ class DynamoDbItem implements \ArrayAccess
         }
     }
     
-    public function toArray()
+    public function toArray(): array
     {
         $ret = [];
         foreach ($this->data as $k => &$v) {
@@ -198,47 +165,17 @@ class DynamoDbItem implements \ArrayAccess
         return $ret;
     }
     
-    /**
-     * @return mixed
-     */
-    public function getData()
+    public function getData(): array
     {
         return $this->data;
     }
     
-    /**
-     * Whether a offset exists
-     *
-     * @link  http://php.net/manual/en/arrayaccess.offsetexists.php
-     *
-     * @param mixed $offset <p>
-     *                      An offset to check for.
-     *                      </p>
-     *
-     * @return boolean true on success or false on failure.
-     * </p>
-     * <p>
-     * The return value will be casted to boolean if non-boolean was returned.
-     * @since 5.0.0
-     */
-    public function offsetExists($offset)
+    public function offsetExists(mixed $offset): bool
     {
         return array_key_exists($offset, $this->data);
     }
     
-    /**
-     * Offset to retrieve
-     *
-     * @link  http://php.net/manual/en/arrayaccess.offsetget.php
-     *
-     * @param mixed $offset <p>
-     *                      The offset to retrieve.
-     *                      </p>
-     *
-     * @return mixed Can return all value types.
-     * @since 5.0.0
-     */
-    public function offsetGet($offset)
+    public function offsetGet(mixed $offset): mixed
     {
         if (!array_key_exists($offset, $this->data)) {
             throw new \OutOfBoundsException("Attribute $offset does not exist in DynamoDbItem!");
@@ -247,39 +184,12 @@ class DynamoDbItem implements \ArrayAccess
         return static::toUntypedValue($this->data[$offset]);
     }
     
-    /**
-     * Offset to set
-     *
-     * @link  http://php.net/manual/en/arrayaccess.offsetset.php
-     *
-     * @param mixed $offset <p>
-     *                      The offset to assign the value to.
-     *                      </p>
-     * @param mixed $value  <p>
-     *                      The value to set.
-     *                      </p>
-     *
-     * @return void
-     * @since 5.0.0
-     */
-    public function offsetSet($offset, $value)
+    public function offsetSet(mixed $offset, mixed $value): void
     {
         $this->data[$offset] = static::toTypedValue($value);
     }
     
-    /**
-     * Offset to unset
-     *
-     * @link  http://php.net/manual/en/arrayaccess.offsetunset.php
-     *
-     * @param mixed $offset <p>
-     *                      The offset to unset.
-     *                      </p>
-     *
-     * @return void
-     * @since 5.0.0
-     */
-    public function offsetUnset($offset)
+    public function offsetUnset(mixed $offset): void
     {
         if (!array_key_exists($offset, $this->data)) {
             throw new \OutOfBoundsException("Attribute $offset does not exist in DynamoDbItem!");

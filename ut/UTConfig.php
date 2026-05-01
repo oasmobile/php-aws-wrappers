@@ -12,13 +12,18 @@ use Symfony\Component\Yaml\Yaml;
  */
 class UTConfig
 {
-    public static $awsConfig   = [];
-    public static $awsApConfig = [];
+    public static array $awsConfig   = [];
+    public static array $awsApConfig = [];
     /** @var string[] */
-    public static $dynamodbConfig = [];
-    public static $sqsConfig      = [];
-    
-    public static function load()
+    public static array $dynamodbConfig = [];
+    public static array $sqsConfig      = [];
+    public static array $s3Config       = [];
+
+    /** Shared resources created once per suite run (set by bootstrap). */
+    public static string $sharedTableName = '';
+    public static string $sharedQueueName = '';
+
+    public static function load(): void
     {
         $file = __DIR__ . "/ut.yml";
         $yml  = Yaml::parse(file_get_contents($file));
@@ -27,5 +32,6 @@ class UTConfig
         self::$awsApConfig    = $yml['aws-ap'];
         self::$dynamodbConfig = $yml['dynamodb'];
         self::$sqsConfig      = $yml['sqs'];
+        self::$s3Config       = $yml['s3'] ?? [];
     }
 }

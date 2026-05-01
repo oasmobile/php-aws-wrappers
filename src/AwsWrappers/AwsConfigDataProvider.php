@@ -1,29 +1,18 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: minhao
- * Date: 2017-05-08
- * Time: 14:35
- */
 
 namespace Oasis\Mlib\AwsWrappers;
 
 use Aws\Credentials\CredentialProvider;
-use Aws\DoctrineCacheAdapter;
-use Doctrine\Common\Cache\FilesystemCache;
+use Aws\Psr16CacheAdapter;
+use Symfony\Component\Cache\Adapter\FilesystemAdapter;
+use Symfony\Component\Cache\Psr16Cache;
 use Oasis\Mlib\Utils\Exceptions\MandatoryValueMissingException;
 
 class AwsConfigDataProvider
 {
-    protected $config;
+    protected array $config;
     
-    /**
-     * AwsConfigDataProvider constructor.
-     *
-     * @param array $data
-     * @param null  $version
-     */
-    public function __construct(array $data, $version = null)
+    public function __construct(array $data, ?string $version = null)
     {
         if (!isset($data['region'])) {
             throw new MandatoryValueMissingException("Region must be specified in the AWS config!");
@@ -53,20 +42,17 @@ class AwsConfigDataProvider
             if ($cacheFile === true) {
                 $cacheFile = \sys_get_temp_dir() . "/iam.role.cache";
             }
-            $cacheAdapter        = new DoctrineCacheAdapter(new FilesystemCache($cacheFile));
+            $psr6Cache           = new FilesystemAdapter('aws_credentials', 0, $cacheFile);
+            $psr16Cache          = new Psr16Cache($psr6Cache);
+            $cacheAdapter        = new Psr16CacheAdapter($psr16Cache);
             $data['credentials'] = CredentialProvider::cache(CredentialProvider::ecsCredentials(), $cacheAdapter);
         }
         
         $this->config = $data;
-        
     }
     
-    /**
-     * @return array
-     */
-    public function getConfig()
+    public function getConfig(): array
     {
         return $this->config;
     }
-    
 }

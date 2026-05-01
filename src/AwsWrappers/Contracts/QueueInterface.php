@@ -2,23 +2,21 @@
 
 namespace Oasis\Mlib\AwsWrappers\Contracts;
 
-
 interface QueueInterface
 {
-    public function sendMessage($payroll, $delay = 0, $attributes = []);
+    public function sendMessage(mixed $payroll, int $delay = 0, array $attributes = []): mixed;
 
-    public function sendMessages(array $payrolls, $delay = 0, array $attributesList = [], $concurrency = 10);
+    public function sendMessages(array $payrolls, int $delay = 0, array $attributesList = [], int $concurrency = 10): array;
 
-    public function receiveMessage($wait = null, $visibility_timeout = null, $metas = [], $message_attributes = []);
+    public function receiveMessage(?int $wait = null, ?int $visibility_timeout = null, array $metas = [], array $message_attributes = []): mixed;
 
-    public function receiveMessages($max_count, $wait = null);
+    public function receiveMessages(int $max_count, ?int $wait = null): array;
 
-    public function deleteMessage($msg);
+    public function deleteMessage(mixed $msg): void;
 
-    public function deleteMessages($messages);
+    public function deleteMessages(mixed $messages): void;
 
-    public function getAttribute($name);
+    public function getAttribute(string $name): mixed;
 
-    public function getAttributes(array $attributeNames);
-
+    public function getAttributes(array $attributeNames): array;
 }

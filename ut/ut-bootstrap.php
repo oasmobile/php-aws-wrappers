@@ -6,7 +6,7 @@
  * Time: 16:23
  */
 use Oasis\Mlib\AwsWrappers\Test\UTConfig;
-use Monolog\Logger;
+use Monolog\Level;
 use Oasis\Mlib\Logging\ConsoleHandler;
 use Oasis\Mlib\Logging\MLogging;
 
@@ -18,5 +18,5 @@ UTConfig::load();
 if (!in_array('-v', $_SERVER['argv'])
     && !in_array('--verbose', $_SERVER['argv'])
 ) {
-    MLogging::setMinLogLevel(Logger::CRITICAL);
+    MLogging::setMinLogLevel(Level::Critical);
 }

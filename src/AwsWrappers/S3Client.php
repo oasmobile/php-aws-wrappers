@@ -1,10 +1,4 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: minhao
- * Date: 2016-01-10
- * Time: 19:07
- */
 
 namespace Oasis\Mlib\AwsWrappers;
 
@@ -26,15 +20,7 @@ class S3Client extends \Aws\S3\S3Client
         parent::__construct($dp->getConfig());
     }
     
-    /**
-     * @NOTE: presigned URL will not work in AWS China
-     *
-     * @param        $path
-     * @param string $expires
-     *
-     * @return string
-     */
-    public function getPresignedUri($path, $expires = '+30 minutes')
+    public function getPresignedUri(string $path, string $expires = '+30 minutes'): string
     {
         if (preg_match('#^s3://(.*?)/(.*)$#', $path, $matches)) {
             $bucket = $matches[1];

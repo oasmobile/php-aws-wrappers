@@ -1,10 +1,4 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: minhao
- * Date: 2015-12-30
- * Time: 10:30
- */
 
 namespace Oasis\Mlib\AwsWrappers;
 
@@ -32,23 +26,23 @@ class SnsPublisher implements PublisherInterface
     const CHANNEL_WNS               = "WNS";
     
     /** @var SnsClient */
-    protected $client;
-    protected $config;
-    protected $topicArn = '';
+    protected mixed $client;
+    protected array $config = [];
+    protected string $topicArn;
     
-    public function __construct($awsConfig, $topicArn)
+    public function __construct(mixed $awsConfig, string $topicArn)
     {
         $dp             = new AwsConfigDataProvider($awsConfig, '2010-03-31');
         $this->client   = new SnsClient($dp->getConfig());
         $this->topicArn = $topicArn;
     }
     
-    public function publishToSubscribedSQS($messageBody)
+    public function publishToSubscribedSQS(mixed $messageBody): void
     {
-        $this->publish('base64_serialize', base64_encode(serialize($messageBody)), self::CHANNEL_SQS);
+        $this->publish('base64_serialize', base64_encode(serialize($messageBody)), [self::CHANNEL_SQS]);
     }
     
-    public function publish($subject, $body, $channels = [])
+    public function publish(mixed $subject, mixed $body, array|string $channels = []): void
     {
         $structured = [
             'default' => $body,
@@ -102,7 +96,7 @@ class SnsPublisher implements PublisherInterface
 XML;
                     break;
                 default:
-                    mwarning("Channel [%s] is not supported by %s", $channels, static::class);
+                    mwarning("Channel [%s] is not supported by %s", $channel, static::class);
                     $is_supported = false;
                     break;
             }
@@ -121,20 +115,13 @@ XML;
         );
     }
     
-    /**
-     * @return string
-     */
-    public function getTopicArn()
+    public function getTopicArn(): string
     {
         return $this->topicArn;
     }
     
-    /**
-     * @param string $topicArn
-     */
-    public function setTopicArn($topicArn)
+    public function setTopicArn(string $topicArn): void
     {
         $this->topicArn = $topicArn;
     }
-    
 }

@@ -83,18 +83,42 @@ SQS 队列操作封装，支持：
 | AWS Profile | `"profile" => "name"` | 读取 `~/.aws/credentials` |
 | 显式凭证 | `"credentials" => [...]` | 直接传入 key/secret |
 | 临时凭证 | `"credentials" => TemporaryCredential` | 由 `StsClient` 生成 |
-| IAM Role（ECS） | `"iamrole" => true` | 使用 ECS 容器角色，带 Doctrine 文件缓存 |
+| IAM Role（ECS） | `"iamrole" => true` | 使用 ECS 容器角色，带 `symfony/cache` 文件缓存（`FilesystemAdapter` + `Psr16Cache` + `Aws\Psr16CacheAdapter`） |
 | 环境变量 | `AWS_ACCESS_KEY_ID` + `AWS_SECRET_ACCESS_KEY` | SDK 默认行为 |
 
 ---
 
 ## 测试
 
-- 框架：PHPUnit ^5.7
-- 测试目录：`ut/`
+- 框架：PHPUnit ^13
 - 引导文件：`ut/ut-bootstrap.php`
 - 配置模板：`ut/tpl.ut.yml`
-- 测试套件包含：`DynamoDbManagerTest`、`DynamoDbTableTest`、`DynamoDbItemTest`、`S3ClientTest`、`StsClientTest`、`SqsQueueTest`
+- 配置文件：`phpunit.xml`（双 suite，`<source>` 覆盖率源码范围配置）
+
+### 测试套件
+
+| Suite | 目录 | 说明 |
+|-------|------|------|
+| `unit` | `ut/unit/` | 纯单元测试，使用 mock，可离线运行，不依赖 AWS 资源 |
+| `integration` | `ut/integration/` | 集成测试，依赖真实 AWS 资源，需要 AWS 凭证（支持 profile 配置） |
+
+Unit suite 覆盖全部 20 个可测试源文件（不含 4 个纯接口），Integration suite 覆盖 6 个有真实 AWS 交互的类。
+
+### Property-Based Testing
+
+- 库：`giorgiosironi/eris`（PHPUnit TestTrait 集成）
+- 测试文件：`ut/unit/Pbt/DynamoDbItemCodecPbtTest.php`
+- 覆盖 3 个正确性属性：
+  - Codec Round-Trip（untyped → typed → untyped）
+  - Typed Codec Round-Trip（typed → item → typed）
+  - Codec Idempotence（`f(f(x)) == f(x)`）
+- 每个 property 最低 100 次迭代
+
+### 覆盖率
+
+- 驱动：PCOV（`-dpcov.enabled=1`）
+- 阈值检查脚本：`check-coverage.sh`（解析 `--coverage-text` 输出中的 `Lines:` 百分比，低于阈值则 `exit 1`）
+- 阈值：Unit suite 80%、Integration suite 60%
 
 ---
 
@@ -103,8 +127,11 @@ SQS 队列操作封装，支持：
 | 包 | 版本约束 | 用途 |
 |----|----------|------|
 | `aws/aws-sdk-php` | ^3.22 | AWS SDK 核心 |
-| `oasis/logging` | ^1.3 | 日志工具 |
-| `oasis/event` | ^1.0 | 事件分发（`SqsQueue` 进度事件） |
-| `doctrine/common` | ^2.7 | 缓存适配器（IAM Role 凭证缓存） |
-| `phpunit/phpunit` | ^5.7 | 测试（dev） |
-| `league/uri` | ^4.2 | URI 处理（dev） |
+| `oasis/logging` | ^3.0 | 日志工具 |
+| `oasis/event` | ^3.0 | 事件分发（`SqsQueue` 进度事件） |
+| `symfony/cache` | ^7.0 | 缓存适配器（IAM Role 凭证缓存，替代原 `doctrine/common`） |
+| `psr/simple-cache` | ^3.0 | PSR-16 缓存接口 |
+| `phpunit/phpunit` | ^13 | 测试（dev） |
+| `league/uri` | ^7.0 | URI 处理（dev） |
+| `symfony/yaml` | ^8.0 | YAML 解析（dev） |
+| `giorgiosironi/eris` | ^1.1 | Property-Based Testing（dev） |
