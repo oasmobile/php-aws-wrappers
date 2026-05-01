@@ -135,7 +135,7 @@
     - _Requirements: 4.2, 4.3, 4.4_
   - [x] 4.9 Checkpoint: 使用 PHP 8.5 运行 `php vendor/bin/phpunit --testsuite unit` 确认全部单元测试通过（Req 2 AC4, Req 4 AC3）；如有 AWS 凭证可运行 `php vendor/bin/phpunit --testsuite integration` 验证（Req 3 AC5, Req 4 AC4），commit
 
-- [-] 5. Phase 3: 源代码风格现代化
+- [x] 5. Phase 3: 源代码风格现代化
   - [x] 5.1 编写风格现代化的回归测试基线
     - 在现有单元测试中确认所有测试通过，作为行为等价的基线
     - 记录当前测试数量和通过状态
@@ -150,14 +150,14 @@
     - 联合类型：如 `int|float`、`string|null`
     - 保持公共 API 签名不变（方法名、参数顺序、行为契约）
     - _Requirements: 6.1, 6.2, 6.3, 6.4, 6.5, 6.6, 6.7, 6.8_
-  - [-] 5.3 Checkpoint: 运行 `php vendor/bin/phpunit --testsuite unit` 确认全部单元测试通过（行为等价验证），commit
+  - [x] 5.3 Checkpoint: 运行 `php vendor/bin/phpunit --testsuite unit` 确认全部单元测试通过（行为等价验证），commit
 
-- [~] 6. Phase 4: PBT 引入 + 覆盖率考核机制
-  - [ ] 6.1 添加 Eris PBT 库依赖
+- [-] 6. Phase 4: PBT 引入 + 覆盖率考核机制
+  - [x] 6.1 添加 Eris PBT 库依赖
     - `composer require --dev giorgiosironi/eris`
     - 确认安装成功
     - _Requirements: 7.1_
-  - [ ] 6.2 编写 Property 1: Codec Round-Trip PBT 测试
+  - [x] 6.2 编写 Property 1: Codec Round-Trip PBT 测试
     - 创建 `ut/unit/Pbt/DynamoDbItemCodecPbtTest.php`
     - 使用 `Eris\TestTrait`，实现 `testRoundTrip`：对任意有效 PHP 值，`createFromArray` → `toArray` 结果等价于原始输入
     - 自定义递归生成器：string（排除空字符串）、int、float、bool、null、sequential array、associative array，嵌套深度限制 3 层
@@ -166,7 +166,7 @@
     - **Property 1: Codec Round-Trip（untyped → typed → untyped）**
     - **Validates: Requirements 7.2**
     - _Requirements: 7.2, 7.5_
-  - [ ] 6.3 编写 Property 2: Typed Codec Round-Trip PBT 测试
+  - [x] 6.3 编写 Property 2: Typed Codec Round-Trip PBT 测试
     - 在 `DynamoDbItemCodecPbtTest.php` 中添加 `testTypedRoundTrip`：对任意有效 DynamoDB typed array，`createFromTypedArray` → `getData` 结果等价于原始输入
     - 自定义 typed array 生成器（S/N/BOOL/NULL/L/M 类型标记）
     - 最低 100 次迭代
@@ -174,7 +174,7 @@
     - **Property 2: Typed Codec Round-Trip（typed → item → typed）**
     - **Validates: Requirements 7.3**
     - _Requirements: 7.3, 7.5_
-  - [ ] 6.4 编写 Property 3: Codec Idempotence PBT 测试
+  - [x] 6.4 编写 Property 3: Codec Idempotence PBT 测试
     - 在 `DynamoDbItemCodecPbtTest.php` 中添加 `testIdempotence`：对任意有效 PHP 值，`f(f(x)) == f(x)` 其中 `f = toArray ∘ createFromArray`
     - 复用 6.2 的生成器
     - 最低 100 次迭代
@@ -182,13 +182,13 @@
     - **Property 3: Codec Idempotence**
     - **Validates: Requirements 7.4**
     - _Requirements: 7.4, 7.5_
-  - [ ] 6.5 配置覆盖率收集与阈值检查
+  - [x] 6.5 配置覆盖率收集与阈值检查
     - 确认 `phpunit.xml` 中 `<source>` 配置正确（已在 4.4 完成）
     - 创建 `check-coverage.sh` 脚本：解析 `--coverage-text` 输出中的 `Lines:` 百分比，低于阈值则 `exit 1`
     - Unit suite 阈值 80%，Integration suite 阈值 60%
     - 验证命令：`php -dpcov.enabled=1 vendor/bin/phpunit --testsuite unit --coverage-text | ./check-coverage.sh 80`
     - _Requirements: 8.1, 8.2, 8.3, 8.4, 8.5_
-  - [ ] 6.6 Checkpoint: 运行 PBT 测试和覆盖率检查确认全部通过，commit
+  - [-] 6.6 Checkpoint: 运行 PBT 测试和覆盖率检查确认全部通过，commit
 
 - [~] 7. Phase 5: 文档同步更新
   - [ ] 7.1 更新 `docs/state/architecture.md`

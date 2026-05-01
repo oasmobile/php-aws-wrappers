@@ -13,7 +13,8 @@
     "require-dev" : {
         "phpunit/phpunit"   : "^13",
         "league/uri"        : "^7.0",
-        "symfony/yaml": "^8.0"
+        "symfony/yaml": "^8.0",
+        "giorgiosironi/eris": "^1.1"
     },
     "license"     : "MIT",
     "authors"     : [
