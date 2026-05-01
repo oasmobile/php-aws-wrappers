@@ -939,14 +939,12 @@ class DynamoDbTableTest extends TestCase
 
     public function testGetThroughputPrimaryIndex()
     {
-        // describe() returns $result['Table'], then getThroughput accesses ['Table'] again
+        // describe() returns $result['Table'], so getThroughput accesses ProvisionedThroughput directly
         $this->mockClient->queueReturn('describeTable', new Result([
             'Table' => [
-                'Table' => [
-                    'ProvisionedThroughput' => [
-                        'ReadCapacityUnits'  => 10,
-                        'WriteCapacityUnits' => 5,
-                    ],
+                'ProvisionedThroughput' => [
+                    'ReadCapacityUnits'  => 10,
+                    'WriteCapacityUnits' => 5,
                 ],
             ],
         ]));
@@ -964,14 +962,12 @@ class DynamoDbTableTest extends TestCase
         // so the GSI is always skipped. This tests the foreach iteration path.
         $this->mockClient->queueReturn('describeTable', new Result([
             'Table' => [
-                'Table' => [
-                    'GlobalSecondaryIndexes' => [
-                        [
-                            'IndexName' => false,
-                            'ProvisionedThroughput' => [
-                                'ReadCapacityUnits'  => 3,
-                                'WriteCapacityUnits' => 2,
-                            ],
+                'GlobalSecondaryIndexes' => [
+                    [
+                        'IndexName' => false,
+                        'ProvisionedThroughput' => [
+                            'ReadCapacityUnits'  => 3,
+                            'WriteCapacityUnits' => 2,
                         ],
                     ],
                 ],
@@ -989,9 +985,7 @@ class DynamoDbTableTest extends TestCase
 
         $this->mockClient->queueReturn('describeTable', new Result([
             'Table' => [
-                'Table' => [
-                    'GlobalSecondaryIndexes' => [],
-                ],
+                'GlobalSecondaryIndexes' => [],
             ],
         ]));
 

@@ -61,12 +61,8 @@ class DynamoDbItemIntegrationTest extends TestCase
         return $item;
     }
     
-    /**
-     * @depends testCreation
-     *
-     * @param DynamoDbItem $item
-     */
-    public function testArrayAccess(DynamoDbItem $item)
+    #[\PHPUnit\Framework\Attributes\Depends('testCreation')]
+    public function testArrayAccess($item)
     {
         $this->assertArrayHasKey('name', $item);
         $this->assertArrayHasKey('age', $item);

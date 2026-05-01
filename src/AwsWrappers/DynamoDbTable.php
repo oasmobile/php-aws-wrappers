@@ -833,15 +833,15 @@ class DynamoDbTable
     
     public function getThroughput(string|bool $indexName = DynamoDbIndex::PRIMARY_INDEX): array
     {
-        $result = $this->describe();
+        $description = $this->describe();
         if ($indexName == DynamoDbIndex::PRIMARY_INDEX) {
             return [
-                $result['Table']['ProvisionedThroughput']['ReadCapacityUnits'],
-                $result['Table']['ProvisionedThroughput']['WriteCapacityUnits'],
+                $description['ProvisionedThroughput']['ReadCapacityUnits'],
+                $description['ProvisionedThroughput']['WriteCapacityUnits'],
             ];
         }
         else {
-            foreach ($result['Table']['GlobalSecondaryIndexes'] as $gsi) {
+            foreach ($description['GlobalSecondaryIndexes'] as $gsi) {
                 if ($gsi['IndexName'] != $indexName) {
                     continue;
                 }

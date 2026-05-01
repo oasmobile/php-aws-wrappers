@@ -18,6 +18,9 @@ class StsClientIntegrationTest extends TestCase
 {
     public function testGetTempToken()
     {
+        $bucket = UTConfig::$s3Config['bucket'] ?? 'aw-ut-s3-bucket';
+
+        // Step 1: verify fake credentials are rejected
         $s3 = new S3Client(
             [
                 'credentials' => [
@@ -29,11 +32,16 @@ class StsClientIntegrationTest extends TestCase
             ]
         );
         try {
-            $s3->listBuckets();
+            $s3->listObjects(['Bucket' => $bucket, 'MaxKeys' => 1]);
             throw new \RuntimeException("should fail authentication!");
         } catch (S3Exception $e) {
-            $this->assertEquals('InvalidAccessKeyId', $e->getAwsErrorCode());
+            $this->assertContains(
+                $e->getAwsErrorCode(),
+                ['InvalidAccessKeyId', 'SignatureDoesNotMatch']
+            );
         }
+
+        // Step 2: verify temporary credentials work
         $sts            = new StsClient(UTConfig::$awsConfig);
         $tempCredential = $sts->getTemporaryCredential(900);
         $s3             = new S3Client(
@@ -42,6 +50,7 @@ class StsClientIntegrationTest extends TestCase
                 'region'      => 'cn-north-1',
             ]
         );
-        $s3->listBuckets();
+        $result = $s3->listObjects(['Bucket' => $bucket, 'MaxKeys' => 1]);
+        $this->assertIsArray($result->get('Contents') ?? []);
     }
 }

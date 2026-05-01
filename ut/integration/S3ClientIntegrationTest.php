@@ -19,16 +19,18 @@ class S3ClientIntegrationTest extends TestCase
 {
     public function testPresignedUri()
     {
-        $key = 'aws-wrappers-test/s3client-test';
-        $s3  = new S3Client(UTConfig::$awsApConfig);
+        $bucket    = UTConfig::$s3Config['bucket'] ?? 'aw-ut-s3-bucket';
+        $keyPrefix = UTConfig::$s3Config['key-prefix'] ?? 'aw-ut-s3test/';
+        $key       = $keyPrefix . 's3client-test';
+        $s3        = new S3Client(UTConfig::$awsApConfig);
         $s3->putObject(
             [
-                'Bucket' => 'minhao-dev',
+                'Bucket' => $bucket,
                 'Key'    => $key,
                 'Body'   => 'testnote',
             ]
         );
-        $url      = $s3->getPresignedUri("s3://minhao-dev/" . $key, '+3 minutes');
+        $url      = $s3->getPresignedUri("s3://{$bucket}/" . $key, '+3 minutes');
         $client   = new Client();
         $response = $client->request('GET', $url);
         $this->assertEquals('testnote', $response->getBody()->getContents());

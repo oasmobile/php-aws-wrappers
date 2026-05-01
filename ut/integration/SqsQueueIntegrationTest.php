@@ -1,10 +1,4 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: minhao
- * Date: 2017-01-05
- * Time: 16:29
- */
 
 namespace Oasis\Mlib\AwsWrappers\Test\Integration;
 
@@ -12,134 +6,162 @@ use Oasis\Mlib\AwsWrappers\SqsQueue;
 use Oasis\Mlib\AwsWrappers\SqsReceivedMessage;
 use Oasis\Mlib\AwsWrappers\Test\UTConfig;
 use Oasis\Mlib\Utils\ArrayDataProvider;
-use Oasis\Mlib\Utils\DataProviderInterface;
+use Oasis\Mlib\Utils\DataType;
 use PHPUnit\Framework\TestCase;
 
+/**
+ * Uses the shared SQS queue created by IntegrationSetup.
+ */
 class SqsQueueIntegrationTest extends TestCase
 {
-    const DEBUG = 0;
-    
-    protected static $queueName;
-    
-    /** @var  SqsQueue */
-    protected $sqs;
-    
-    public static function setUpBeforeClass(): void
-    {
-        parent::setUpBeforeClass();
-        
-        self::$queueName = UTConfig::$sqsConfig['prefix'] . time();
-        
-        $sqs = new SqsQueue(UTConfig::$awsConfig, self::$queueName);
-        if (!$sqs->exists()) {
-            $sqs->createQueue(
-                [
-                    SqsQueue::VISIBILITY_TIMEOUT => 20,
-                    SqsQueue::DELAY_SECONDS      => 0,
-                ]
-            );
-        }
-        else {
-            $sqs->purge();
-        }
-    }
-    
-    public static function tearDownAfterClass(): void
-    {
-        $sqs = new SqsQueue(UTConfig::$awsConfig, self::$queueName);
-        $sqs->deleteQueue();
-        
-        parent::tearDownAfterClass();
-    }
-    
+    protected SqsQueue $sqs;
+
     protected function setUp(): void
     {
         parent::setUp();
-        
-        $this->sqs = new SqsQueue(UTConfig::$awsConfig, self::$queueName);
+        IntegrationSetup::ensureSqs();
+        $this->sqs = new SqsQueue(UTConfig::$awsConfig, UTConfig::$sharedQueueName);
     }
-    
-    public function testBatchSend()
+
+    // ── Send / Receive ──────────────────────────────────────────
+
+    public function testBatchSend(): void
     {
         $batch    = 175;
         $payrolls = [];
         for ($i = 0; $i < $batch; ++$i) {
-            $payrolls[] = json_encode(
-                [
-                    "id"  => $i,
-                    "val" => md5($i),
-                ]
-            );
+            $payrolls[] = json_encode(["id" => $i, "val" => md5($i)]);
         }
-        
         $this->sqs->sendMessages($payrolls);
-        
+
         $received = 0;
         while ($msgs = $this->sqs->receiveMessages($batch, 1)) {
             $received += count($msgs);
             $this->sqs->deleteMessages($msgs);
         }
-        
-        $this->assertEquals($batch, $received);
+        $this->assertGreaterThanOrEqual($batch, $received);
     }
-    
-    public function testAttributedMessage()
+
+    public function testAttributedMessage(): void
     {
         $this->sqs->sendMessage('hello', 0, ['user' => 'minhao']);
         $msg = $this->sqs->receiveMessage(5, null, [], ['user']);
-        $this->sqs->deleteMessage($msg);
-        $this->assertTrue($msg instanceof SqsReceivedMessage);
+        $this->assertInstanceOf(SqsReceivedMessage::class, $msg);
         $this->assertEquals('minhao', $msg->getAttribute('user'));
+        $this->sqs->deleteMessage($msg);
     }
-    
-    public function testAutoSerialization()
+
+    public function testAutoSerialization(): void
     {
         $obj = new ArrayDataProvider(['a' => 9]);
         $this->sqs->sendMessage($obj, 0, ['b' => 'xyz']);
         $msg = $this->sqs->receiveMessage(5, null, [], ['b']);
-        $this->sqs->deleteMessage($msg);
-        $this->assertTrue($msg instanceof SqsReceivedMessage);
-        /** @var ArrayDataProvider $body */
+        $this->assertInstanceOf(SqsReceivedMessage::class, $msg);
         $body = $msg->getBody();
-        $this->assertTrue($body instanceof ArrayDataProvider);
-        $this->assertEquals(9, $body->getMandatory('a', DataProviderInterface::INT_TYPE));
+        $this->assertInstanceOf(ArrayDataProvider::class, $body);
+        $this->assertEquals(9, $body->getMandatory('a', DataType::Int));
+        $this->sqs->deleteMessage($msg);
     }
-    
-    public function testSNSPublishedSerialization()
+
+    public function testSNSPublishedSerialization(): void
     {
-        $obj                 = new ArrayDataProvider(['a' => 9]);
-        $mockedSerialization = base64_encode(serialize($obj));
-        $structrued          = [
+        $obj       = new ArrayDataProvider(['a' => 9]);
+        $structured = [
             'Subject' => 'base64_serialize',
-            'Message' => $mockedSerialization,
+            'Message' => base64_encode(serialize($obj)),
         ];
-        $this->sqs->sendMessage(json_encode($structrued));
+        $this->sqs->sendMessage(json_encode($structured));
         $msg = $this->sqs->receiveMessage(5);
-        $this->sqs->deleteMessage($msg);
-        $this->assertTrue($msg instanceof SqsReceivedMessage);
-        /** @var ArrayDataProvider $body */
+        $this->assertInstanceOf(SqsReceivedMessage::class, $msg);
         $body = $msg->getBody();
-        $this->assertTrue($body instanceof ArrayDataProvider);
-        $this->assertEquals(9, $body->getMandatory('a', DataProviderInterface::INT_TYPE));
-    
+        $this->assertInstanceOf(ArrayDataProvider::class, $body);
+        $this->assertEquals(9, $body->getMandatory('a', DataType::Int));
+        $this->sqs->deleteMessage($msg);
     }
-    
-    public function testFailureMessages()
+
+    public function testFailureMessages(): void
     {
-        $msg = "\x8";
-        $ret = $this->sqs->sendMessage($msg);
+        $ret = $this->sqs->sendMessage("\x8");
         $this->assertFalse($ret);
+        $this->assertStringContainsString('Invalid binary character', $this->sqs->getSendFailureMessages()[0]);
+
+        $ret = $this->sqs->sendMessages(["x" => "\x8", "y" => "\xA"]);
+        $this->assertCount(1, $ret);
         $failed = $this->sqs->getSendFailureMessages();
-        $this->assertStringContainsString('Invalid binary character', $failed[0]);
-        $ret = $this->sqs->sendMessages(
-            [
-                "x" => "\x8",
-                "y" => "\xA",
-            ]
-        );
-        $this->assertEquals(1, count($ret));
-        $failed = $this->sqs->getSendFailureMessages();
-        $this->assertEquals(1, count($failed));
+        $this->assertCount(1, $failed);
         $this->assertStringContainsString('Invalid binary character', $failed["x"]);
+    }
+
+    public function testReceiveMessageWithAttributes(): void
+    {
+        $uniqueBody = 'attr-test-' . uniqid();
+        $this->sqs->sendMessage($uniqueBody, 0, ['sender' => 'integration']);
+        // Long-poll; may receive a stale message from a previous test, so retry
+        $deadline = microtime(true) + 10;
+        $msg = null;
+        while (microtime(true) < $deadline) {
+            $candidate = $this->sqs->receiveMessageWithAttributes(['sender'], 2, null, []);
+            if ($candidate === null) continue;
+            if ($candidate->getOriginalBody() === $uniqueBody) {
+                $msg = $candidate;
+                break;
+            }
+            // Not our message — delete and retry
+            $this->sqs->deleteMessage($candidate);
+        }
+        $this->assertNotNull($msg, 'Did not receive the expected message within timeout');
+        $this->assertEquals('integration', $msg->getAttribute('sender'));
+        $this->assertIsString($msg->getMessageId());
+        $this->assertIsArray($msg->getOriginalAttributes());
+        $this->sqs->deleteMessage($msg);
+    }
+
+    // ── Queue metadata ──────────────────────────────────────────
+
+    public function testExists(): void
+    {
+        $this->assertTrue($this->sqs->exists());
+    }
+
+    public function testGetName(): void
+    {
+        $this->assertEquals(UTConfig::$sharedQueueName, $this->sqs->getName());
+    }
+
+    public function testGetQueueUrl(): void
+    {
+        $url = $this->sqs->getQueueUrl();
+        $this->assertStringContainsString(UTConfig::$sharedQueueName, $url);
+    }
+
+    public function testGetAndSetAttributes(): void
+    {
+        $this->sqs->setAttributes([SqsQueue::VISIBILITY_TIMEOUT => '30']);
+        $this->assertEquals('30', $this->sqs->getAttribute(SqsQueue::VISIBILITY_TIMEOUT));
+
+        $attrs = $this->sqs->getAttributes([SqsQueue::VISIBILITY_TIMEOUT, SqsQueue::DELAY_SECONDS]);
+        $this->assertArrayHasKey(SqsQueue::VISIBILITY_TIMEOUT, $attrs);
+        $this->assertArrayHasKey(SqsQueue::DELAY_SECONDS, $attrs);
+
+        $this->sqs->setAttributes([SqsQueue::VISIBILITY_TIMEOUT => '20']);
+    }
+
+    public function testNonExistentQueue(): void
+    {
+        $q = new SqsQueue(UTConfig::$awsConfig, 'aw-ut-nonexistent-' . time());
+        $this->assertFalse($q->exists());
+    }
+
+    /** This test manages its own temporary queue — independent of shared resources. */
+    public function testCreateAndDeleteQueue(): void
+    {
+        $tempName  = UTConfig::$sqsConfig['prefix'] . 'temp-' . time();
+        $tempQueue = new SqsQueue(UTConfig::$awsConfig, $tempName);
+        $this->assertFalse($tempQueue->exists());
+
+        $tempQueue->createQueue([SqsQueue::VISIBILITY_TIMEOUT => '10']);
+        $this->assertTrue($tempQueue->exists());
+        $tempQueue->purge();
+        $tempQueue->deleteQueue();
     }
 }

@@ -190,7 +190,7 @@
     - _Requirements: 8.1, 8.2, 8.3, 8.4, 8.5_
   - [x] 6.6 Checkpoint: 运行 PBT 测试和覆盖率检查确认全部通过，commit
 
-- [-] 7. Phase 5: 文档同步更新
+- [x] 7. Phase 5: 文档同步更新
   - [x] 7.1 更新 `docs/state/architecture.md`
     - 测试 section：PHPUnit ^5.7 → 13，测试目录 `ut/` → `ut/unit/` + `ut/integration/`，新增 PBT 和覆盖率机制描述
     - 依赖 section：`doctrine/common ^2.7` → `symfony/cache ^7.x`，`phpunit/phpunit ^5.7` → `^13`，`league/uri` 版本更新，新增 `giorgiosironi/eris`
@@ -201,22 +201,22 @@
     - 构建与测试命令：新增 `--testsuite unit` / `--testsuite integration`、覆盖率命令、PBT 说明
     - 目录结构：反映 `ut/unit/` + `ut/integration/` 双目录
     - _Requirements: 9.2_
-  - [-] 7.3 Checkpoint: 确认文档内容与实际代码/配置一致，commit
+  - [x] 7.3 Checkpoint: 确认文档内容与实际代码/配置一致，commit
 
-- [ ] 8. 手工测试
-  - [ ] 8.1 Increment alpha tag
+- [-] 8. 手工测试
+  - [x] 8.1 Increment alpha tag
     - 查询已有 alpha tag（`git tag -l 'v3.0.0-alpha.*'`），取最大序号 +1，打新 tag
-  - [ ] 8.2 验证全量测试在 PHP 8.5 下通过
+  - [x] 8.2 验证全量测试在 PHP 8.5 下通过
     - 运行 `php vendor/bin/phpunit` 确认 unit + integration 全部通过（integration 需 AWS 凭证）
     - 确认零 deprecation warning、零 failure
-  - [ ] 8.3 验证覆盖率阈值
+  - [x] 8.3 验证覆盖率阈值
     - 运行 `php -dpcov.enabled=1 vendor/bin/phpunit --testsuite unit --coverage-text` 并通过 `check-coverage.sh 80`
     - 运行 `php -dpcov.enabled=1 vendor/bin/phpunit --testsuite integration --coverage-text` 并通过 `check-coverage.sh 60`（需 AWS 凭证）
-  - [ ] 8.4 验证 PBT 测试
+  - [x] 8.4 验证 PBT 测试
     - 运行 PBT 测试确认 3 个 property 全部通过，每个 property ≥100 次迭代
-  - [ ] 8.5 验证 `composer install` 干净安装
+  - [x] 8.5 验证 `composer install` 干净安装
     - 删除 `vendor/` 后重新 `composer install`，确认无错误、无 warning
-  - [ ] 8.6 验证公共 API 兼容性
+  - [x] 8.6 验证公共 API 兼容性
     - 检查 `src/` 下所有公共方法签名未发生语义变更（方法名、参数顺序、行为契约不变）
 
 - [ ] 9. Code Review

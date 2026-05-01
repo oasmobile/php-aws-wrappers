@@ -14,6 +14,7 @@ use Oasis\Mlib\AwsWrappers\DynamoDbManager;
 use Oasis\Mlib\AwsWrappers\Test\UTConfig;
 use PHPUnit\Framework\TestCase;
 
+#[\PHPUnit\Framework\Attributes\Group('slow')]
 class DynamoDbManagerIntegrationTest extends TestCase
 {
     protected static $tableName;
@@ -22,7 +23,8 @@ class DynamoDbManagerIntegrationTest extends TestCase
     {
         parent::setUpBeforeClass();
         
-        self::$tableName = 'ut-ddbm-' . time();
+        $prefix          = UTConfig::$dynamodbConfig['table-prefix'] ?? 'aw-ut-ddb-';
+        self::$tableName = $prefix . 'mgr-' . time();
     }
     
     public static function tearDownAfterClass(): void
@@ -52,6 +54,13 @@ class DynamoDbManagerIntegrationTest extends TestCase
         $this->assertTrue(in_array(self::$tableName, $listed));
     }
     
+    public function testWaitForTablesToBeFullyReady()
+    {
+        $dbm = new DynamoDbManager(UTConfig::$awsConfig);
+        $result = $dbm->waitForTablesToBeFullyReady(self::$tableName, 60, 2);
+        $this->assertTrue($result);
+    }
+
     public function testDelete()
     {
         $dbm = new DynamoDbManager(UTConfig::$awsConfig);
