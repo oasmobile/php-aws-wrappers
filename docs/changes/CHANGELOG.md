@@ -1,5 +1,9 @@
 # Changelog
 
+## v3.0.2
+
+修复 `DynamoDbTable` 松散比较导致 GSI 被误判为 primary index。详见 [3.0.2/CHANGELOG.md](3.0.2/CHANGELOG.md)。
+
 ## v3.0.1
 
 README 文档修复。详见 [3.0.1/CHANGELOG.md](3.0.1/CHANGELOG.md)。

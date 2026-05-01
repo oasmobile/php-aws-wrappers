@@ -3,10 +3,10 @@
 | 字段 | 值 |
 |------|------|
 | Severity | `[P1] major` |
-| Status | `open` |
+| Status | `closed` |
 | Found In | `v3.0.1` |
-| Fixed In | |
-| Related Test | |
+| Fixed In | `v3.0.2` |
+| Related Test | `DynamoDbTableTest::testGetThroughputWithStringGSIName`, `DynamoDbTableTest::testSetThroughputWithStringGSIName` |
 
 ---
 
