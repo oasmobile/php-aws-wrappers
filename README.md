@@ -9,6 +9,10 @@ The oasis/aws-wrappers component provides a collection of object oriented warppe
 - The wrapper classes provides simple-and-clear interface by sacrificing many advnaced feature of the original SDK.
 - The wrapper classes are extendable, and it is appreciated if you can help extend the wrappers' functionalities.
 
+## Requirements
+
+- PHP >= 8.5
+
 ## Installation
 
 The oasis/aws-wrappers is an open-source component available at `packagist.org`. To require the package, try the following in your project directory:
@@ -47,9 +51,9 @@ When using AWS SDK, one thing that is overlooked most of the time is the policy 
 ## Service Wrappers
 
 - [DynamoDB](docs/DynamoDB.md)
-- [SNS](docs/SnsPublisher.md)
+- [SNS](docs/SNS.md)
 - [Redshift import/export](docs/Redshift.md)
-- [S3](docs/S3Client.md)
+- [S3](docs/S3.md)
 - [SQS](docs/SQS.md)
 
 [aws/aws-php-sdk]: https://github.com/aws/aws-sdk-php/ "Official Repository"
