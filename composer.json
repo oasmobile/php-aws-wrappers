@@ -3,14 +3,18 @@
     "description" : "Wrappers for AWS SDK",
     "type"        : "library",
     "require"     : {
-        "aws/aws-sdk-php": "^3.22",
-        "oasis/logging"  : "^1.3",
-        "oasis/event"    : "^1.0",
-        "doctrine/common": "^2.7"
+        "php"             : ">=8.5",
+        "aws/aws-sdk-php" : "^3.22",
+        "oasis/logging"   : "^3.0",
+        "oasis/event"     : "^3.0",
+        "symfony/cache"   : "^7.0",
+        "psr/simple-cache": "^3.0"
     },
     "require-dev" : {
-        "phpunit/phpunit"   : "^5.7",
-        "league/uri"        : "^4.2"
+        "phpunit/phpunit"   : "^13",
+        "league/uri"        : "^7.0",
+        "symfony/yaml": "^8.0",
+        "giorgiosironi/eris": "^1.1"
     },
     "license"     : "MIT",
     "authors"     : [
@@ -27,7 +31,9 @@
     },
     "autoload-dev": {
         "psr-4": {
-            "Oasis\\Mlib\\AwsWrappers\\Test\\": "ut/"
+            "Oasis\\Mlib\\AwsWrappers\\Test\\": "ut/",
+            "Oasis\\Mlib\\AwsWrappers\\Test\\Unit\\": "ut/unit/",
+            "Oasis\\Mlib\\AwsWrappers\\Test\\Integration\\": "ut/integration/"
         }
     }
 }

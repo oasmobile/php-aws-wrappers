@@ -1,32 +1,26 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: minhao
- * Date: 2015-12-30
- * Time: 10:10
- */
 
 namespace Oasis\Mlib\Logging;
 
 use Monolog\Handler\AbstractProcessingHandler;
-use Monolog\Logger;
+use Monolog\Level;
+use Monolog\LogRecord;
 use Oasis\Mlib\AwsWrappers\SnsPublisher;
 
 class AwsSnsHandler extends AbstractProcessingHandler
 {
     use MLoggingHandlerTrait;
     
-    /** @var SnsPublisher */
-    protected $publisher;
-    protected $subject;
+    protected SnsPublisher $publisher;
+    protected string $subject;
     
-    private $isBatchHandling = false;
-    private $contentBuffer   = '';
+    private bool $isBatchHandling = false;
+    private string $contentBuffer = '';
     
     public function __construct(SnsPublisher $publisher,
-                                $subject,
-                                $level = Logger::DEBUG,
-                                $bubble = true)
+                                string $subject,
+                                Level $level = Level::Debug,
+                                bool $bubble = true)
     {
         parent::__construct($level, $bubble);
         
@@ -34,7 +28,7 @@ class AwsSnsHandler extends AbstractProcessingHandler
         $this->subject   = $subject;
     }
     
-    public function handleBatch(array $records)
+    public function handleBatch(array $records): void
     {
         $this->isBatchHandling = true;
         parent::handleBatch($records);
@@ -42,39 +36,27 @@ class AwsSnsHandler extends AbstractProcessingHandler
         $this->publishContent();
     }
     
-    /**
-     * @return SnsPublisher
-     */
-    public function getPublisher()
+    public function getPublisher(): SnsPublisher
     {
         return $this->publisher;
     }
     
-    /**
-     * @param SnsPublisher $publisher
-     */
-    public function setPublisher($publisher)
+    public function setPublisher(SnsPublisher $publisher): void
     {
         $this->publisher = $publisher;
     }
     
-    /**
-     * @return mixed
-     */
-    public function getSubject()
+    public function getSubject(): string
     {
         return $this->subject;
     }
     
-    /**
-     * @param mixed $subject
-     */
-    public function setSubject($subject)
+    public function setSubject(string $subject): void
     {
         $this->subject = $subject;
     }
     
-    protected function publishContent()
+    protected function publishContent(): void
     {
         if ($this->contentBuffer) {
             $this->publisher->publish($this->subject, $this->contentBuffer);
@@ -82,21 +64,14 @@ class AwsSnsHandler extends AbstractProcessingHandler
         }
     }
     
-    /**
-     * Writes the record down to the log of the implementing handler
-     *
-     * @param  array $record
-     *
-     * @return void
-     */
-    protected function write(array $record)
+    protected function write(LogRecord $record): void
     {
         if (!$this->isBatchHandling) {
-            $this->contentBuffer = $record['formatted'];
+            $this->contentBuffer = $record->formatted;
             $this->publishContent();
         }
         else {
-            $this->contentBuffer = $record['formatted'] . $this->contentBuffer;
+            $this->contentBuffer = $record->formatted . $this->contentBuffer;
         }
     }
 }

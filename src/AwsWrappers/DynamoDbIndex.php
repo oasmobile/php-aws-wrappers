@@ -1,10 +1,4 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: minhao
- * Date: 2016-09-09
- * Time: 16:36
- */
 
 namespace Oasis\Mlib\AwsWrappers;
 
@@ -16,32 +10,19 @@ class DynamoDbIndex
     const PROJECTION_TYPE_INCLUDE   = "INCLUDE";
     const PROJECTION_TYPE_KEYS_ONLY = "KEYS_ONLY";
     
-    protected $name = '';
+    protected string $name = '';
     
-    protected $hashKey;
-    protected $hashKeyType         = DynamoDbItem::ATTRIBUTE_TYPE_STRING;
-    protected $rangeKey            = null;
-    protected $rangeKeyType        = DynamoDbItem::ATTRIBUTE_TYPE_STRING;
-    protected $projectionType      = self::PROJECTION_TYPE_ALL;
-    protected $projectedAttributes = [];
-    
-    public function __construct($hashKey,
-                                $hashKeyType = DynamoDbItem::ATTRIBUTE_TYPE_STRING,
-                                $rangeKey = null,
-                                $rangeKeyType = DynamoDbItem::ATTRIBUTE_TYPE_STRING,
-                                $projectionType = self::PROJECTION_TYPE_ALL,
-                                $projectedAttributes = []
-    )
-    {
-        $this->hashKey             = $hashKey;
-        $this->hashKeyType         = $hashKeyType;
-        $this->rangeKey            = $rangeKey;
-        $this->rangeKeyType        = $rangeKeyType;
-        $this->projectionType      = $projectionType;
-        $this->projectedAttributes = $projectedAttributes;
+    public function __construct(
+        protected string $hashKey,
+        protected string $hashKeyType = DynamoDbItem::ATTRIBUTE_TYPE_STRING,
+        protected ?string $rangeKey = null,
+        protected ?string $rangeKeyType = DynamoDbItem::ATTRIBUTE_TYPE_STRING,
+        protected string $projectionType = self::PROJECTION_TYPE_ALL,
+        protected array $projectedAttributes = [],
+    ) {
     }
     
-    public function getAttributeDefinitions($keyAsName = true)
+    public function getAttributeDefinitions(bool $keyAsName = true): array
     {
         $attrDef = [
             $this->hashKey => [
@@ -62,23 +43,17 @@ class DynamoDbIndex
         return $attrDef;
     }
     
-    /**
-     * @return string
-     */
-    public function getHashKey()
+    public function getHashKey(): string
     {
         return $this->hashKey;
     }
     
-    /**
-     * @return string
-     */
-    public function getHashKeyType()
+    public function getHashKeyType(): string
     {
         return $this->hashKeyType;
     }
     
-    public function getKeySchema()
+    public function getKeySchema(): array
     {
         $keySchema = [
             [
@@ -96,7 +71,7 @@ class DynamoDbIndex
         return $keySchema;
     }
     
-    public function getProjection()
+    public function getProjection(): array
     {
         $projection = [
             "ProjectionType" => $this->projectionType,
@@ -108,10 +83,7 @@ class DynamoDbIndex
         return $projection;
     }
     
-    /**
-     * @return string
-     */
-    public function getName()
+    public function getName(): string
     {
         if ($this->name) {
             return $this->name;
@@ -129,51 +101,34 @@ class DynamoDbIndex
         }
     }
     
-    /**
-     * @param string $name
-     *
-     * @return DynamoDbIndex
-     */
-    public function setName($name)
+    public function setName(string $name): static
     {
         $this->name = $name;
         
         return $this;
     }
     
-    /**
-     * @return array
-     */
-    public function getProjectedAttributes()
+    public function getProjectedAttributes(): array
     {
         return $this->projectedAttributes;
     }
     
-    /**
-     * @return string
-     */
-    public function getProjectionType()
+    public function getProjectionType(): string
     {
         return $this->projectionType;
     }
     
-    /**
-     * @return string
-     */
-    public function getRangeKey()
+    public function getRangeKey(): ?string
     {
         return $this->rangeKey;
     }
     
-    /**
-     * @return string
-     */
-    public function getRangeKeyType()
+    public function getRangeKeyType(): ?string
     {
         return $this->rangeKeyType;
     }
     
-    public function equals(DynamoDbIndex $other)
+    public function equals(DynamoDbIndex $other): bool
     {
         if ($this->projectionType != $other->projectionType) {
             return false;
