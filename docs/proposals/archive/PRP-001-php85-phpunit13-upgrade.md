@@ -6,7 +6,7 @@
 
 ## Status
 
-`in-progress`
+`released`
 
 ---
 

@@ -219,8 +219,8 @@
   - [x] 8.6 验证公共 API 兼容性
     - 检查 `src/` 下所有公共方法签名未发生语义变更（方法名、参数顺序、行为契约不变）
 
-- [ ] 9. Code Review
-  - [ ] 9.1 委托给 code-reviewer sub-agent，基于当前分支的 diff 执行全量 code review
+- [x] 9. Code Review
+  - [x] 9.1 委托给 code-reviewer sub-agent，基于当前分支的 diff 执行全量 code review
 
 ## Notes
 
