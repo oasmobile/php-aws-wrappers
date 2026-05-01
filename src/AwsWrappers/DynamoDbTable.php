@@ -654,7 +654,7 @@ class DynamoDbTable
             "Period"     => 60,
             "Statistics" => ["Sum"],
         ];
-        if ($indexName != DynamoDbIndex::PRIMARY_INDEX) {
+        if ($indexName !== DynamoDbIndex::PRIMARY_INDEX) {
             $requestArgs['Dimensions'][] = [
                 "Name"  => "GlobalSecondaryIndexName",
                 "Value" => $indexName,
@@ -834,7 +834,7 @@ class DynamoDbTable
     public function getThroughput(string|bool $indexName = DynamoDbIndex::PRIMARY_INDEX): array
     {
         $description = $this->describe();
-        if ($indexName == DynamoDbIndex::PRIMARY_INDEX) {
+        if ($indexName === DynamoDbIndex::PRIMARY_INDEX) {
             return [
                 $description['ProvisionedThroughput']['ReadCapacityUnits'],
                 $description['ProvisionedThroughput']['WriteCapacityUnits'],
@@ -842,7 +842,7 @@ class DynamoDbTable
         }
         else {
             foreach ($description['GlobalSecondaryIndexes'] as $gsi) {
-                if ($gsi['IndexName'] != $indexName) {
+                if ($gsi['IndexName'] !== $indexName) {
                     continue;
                 }
                 
@@ -872,7 +872,7 @@ class DynamoDbTable
             'ReadCapacityUnits'  => $read,
             'WriteCapacityUnits' => $write,
         ];
-        if ($indexName == DynamoDbIndex::PRIMARY_INDEX) {
+        if ($indexName === DynamoDbIndex::PRIMARY_INDEX) {
             $requestArgs['ProvisionedThroughput'] = $updateObject;
         }
         else {
