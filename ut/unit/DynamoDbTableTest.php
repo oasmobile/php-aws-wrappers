@@ -996,6 +996,42 @@ class DynamoDbTableTest extends TestCase
     // 26. setThroughput()
     // ================================================================
 
+    // --- ISS-3.0.1-L01 red tests: string GSI name must reach GSI branch ---
+
+    public function testGetThroughputWithStringGSIName()
+    {
+        $this->mockClient->queueReturn('describeTable', new Result([
+            'Table' => [
+                'GlobalSecondaryIndexes' => [
+                    [
+                        'IndexName' => 'email-index',
+                        'ProvisionedThroughput' => [
+                            'ReadCapacityUnits'  => 20,
+                            'WriteCapacityUnits' => 10,
+                        ],
+                    ],
+                ],
+            ],
+        ]));
+
+        $result = $this->table->getThroughput('email-index');
+
+        $this->assertSame([20, 10], $result);
+    }
+
+    public function testSetThroughputWithStringGSIName()
+    {
+        $this->table->setThroughput(8, 4, 'email-index');
+
+        $args = $this->mockClient->calls['updateTable'][0][0];
+        $this->assertArrayHasKey('GlobalSecondaryIndexUpdates', $args);
+        $this->assertArrayNotHasKey('ProvisionedThroughput', $args);
+        $update = $args['GlobalSecondaryIndexUpdates'][0]['Update'];
+        $this->assertSame('email-index', $update['IndexName']);
+        $this->assertSame(8, $update['ProvisionedThroughput']['ReadCapacityUnits']);
+        $this->assertSame(4, $update['ProvisionedThroughput']['WriteCapacityUnits']);
+    }
+
     public function testSetThroughputPrimaryIndex()
     {
         $this->table->setThroughput(10, 5);
