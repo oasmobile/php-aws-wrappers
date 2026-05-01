@@ -8,11 +8,13 @@ PHP 库，为 AWS SDK 常用服务提供面向对象的简化封装。
 
 | 项目 | 值 |
 |------|-----|
-| 语言 | PHP |
+| 语言 | PHP >=8.5 |
 | 包管理 | Composer |
 | 命名空间 | `Oasis\Mlib\AwsWrappers\`、`Oasis\Mlib\Logging\` |
-| 核心依赖 | `aws/aws-sdk-php ^3.22`、`oasis/logging ^1.3`、`oasis/event ^1.0`、`doctrine/common ^2.7` |
-| 测试框架 | PHPUnit ^5.7 |
+| 核心依赖 | `aws/aws-sdk-php ^3.22`、`oasis/logging ^3.0`、`oasis/event ^3.0`、`symfony/cache ^7.0` |
+| 测试框架 | PHPUnit ^13 |
+| PBT 库 | `giorgiosironi/eris ^1.1` |
+| 覆盖率驱动 | PCOV |
 | 许可证 | MIT |
 
 ---
@@ -23,12 +25,28 @@ PHP 库，为 AWS SDK 常用服务提供面向对象的简化封装。
 # 安装依赖
 composer install
 
-# 运行全量测试
-./vendor/bin/phpunit
+# 运行全部测试（unit + integration）
+php vendor/bin/phpunit
+
+# 仅运行单元测试（无需 AWS 凭证）
+php vendor/bin/phpunit --testsuite unit
+
+# 仅运行集成测试（需 AWS 凭证）
+php vendor/bin/phpunit --testsuite integration
 
 # 运行单个测试文件
-./vendor/bin/phpunit ut/DynamoDbItemTest.php
+php vendor/bin/phpunit ut/unit/DynamoDbItemTest.php
+
+# 单元测试 + 覆盖率（阈值 80%）
+php -dpcov.enabled=1 vendor/bin/phpunit --testsuite unit --coverage-text | ./check-coverage.sh 80
+
+# 集成测试 + 覆盖率（阈值 60%，需 AWS 凭证）
+php -dpcov.enabled=1 vendor/bin/phpunit --testsuite integration --coverage-text | ./check-coverage.sh 60
 ```
+
+### PBT（Property-Based Testing）
+
+PBT 测试位于 `ut/unit/Pbt/`，使用 `giorgiosironi/eris` 库，覆盖 `DynamoDbItem` 类型转换的 3 个正确性属性（Codec Round-Trip、Typed Codec Round-Trip、Codec Idempotence）。每个 property 最低 100 次迭代，随 unit suite 一起运行。
 
 ---
 
@@ -41,7 +59,14 @@ src/
 │   └── DynamoDb/         # DynamoDB 查询/扫描命令封装
 └── Logging/              # Monolog Handler（SNS）
 
-ut/                       # 单元测试
+ut/
+├── unit/                 # 纯单元测试（mock，可离线运行）
+│   ├── DynamoDb/         # DynamoDB Command Wrapper 测试
+│   └── Pbt/              # Property-Based Testing
+├── integration/          # 集成测试（需 AWS 凭证）
+├── ut-bootstrap.php      # 引导文件
+└── tpl.ut.yml            # 配置模板
+
 docs/                     # 项目文档
 ```
 

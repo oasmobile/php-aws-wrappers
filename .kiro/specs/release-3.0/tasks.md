@@ -152,7 +152,7 @@
     - _Requirements: 6.1, 6.2, 6.3, 6.4, 6.5, 6.6, 6.7, 6.8_
   - [x] 5.3 Checkpoint: 运行 `php vendor/bin/phpunit --testsuite unit` 确认全部单元测试通过（行为等价验证），commit
 
-- [-] 6. Phase 4: PBT 引入 + 覆盖率考核机制
+- [x] 6. Phase 4: PBT 引入 + 覆盖率考核机制
   - [x] 6.1 添加 Eris PBT 库依赖
     - `composer require --dev giorgiosironi/eris`
     - 确认安装成功
@@ -188,20 +188,20 @@
     - Unit suite 阈值 80%，Integration suite 阈值 60%
     - 验证命令：`php -dpcov.enabled=1 vendor/bin/phpunit --testsuite unit --coverage-text | ./check-coverage.sh 80`
     - _Requirements: 8.1, 8.2, 8.3, 8.4, 8.5_
-  - [-] 6.6 Checkpoint: 运行 PBT 测试和覆盖率检查确认全部通过，commit
+  - [x] 6.6 Checkpoint: 运行 PBT 测试和覆盖率检查确认全部通过，commit
 
-- [~] 7. Phase 5: 文档同步更新
-  - [ ] 7.1 更新 `docs/state/architecture.md`
+- [-] 7. Phase 5: 文档同步更新
+  - [x] 7.1 更新 `docs/state/architecture.md`
     - 测试 section：PHPUnit ^5.7 → 13，测试目录 `ut/` → `ut/unit/` + `ut/integration/`，新增 PBT 和覆盖率机制描述
     - 依赖 section：`doctrine/common ^2.7` → `symfony/cache ^7.x`，`phpunit/phpunit ^5.7` → `^13`，`league/uri` 版本更新，新增 `giorgiosironi/eris`
     - 认证方式 section：IAM Role 缓存从 Doctrine 切换到 symfony/cache
     - _Requirements: 9.1_
-  - [ ] 7.2 更新 `PROJECT.md`
+  - [x] 7.2 更新 `PROJECT.md`
     - 技术栈表：PHP 版本、PHPUnit 版本、核心依赖版本
     - 构建与测试命令：新增 `--testsuite unit` / `--testsuite integration`、覆盖率命令、PBT 说明
     - 目录结构：反映 `ut/unit/` + `ut/integration/` 双目录
     - _Requirements: 9.2_
-  - [ ] 7.3 Checkpoint: 确认文档内容与实际代码/配置一致，commit
+  - [-] 7.3 Checkpoint: 确认文档内容与实际代码/配置一致，commit
 
 - [ ] 8. 手工测试
   - [ ] 8.1 Increment alpha tag
