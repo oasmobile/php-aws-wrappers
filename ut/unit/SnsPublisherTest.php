@@ -256,21 +256,12 @@ class SnsPublisherTest extends TestCase
 
     public function testPublishUnsupportedChannelIsSkipped()
     {
-        // The source code has a known issue: mwarning() receives $channels (array)
-        // instead of $channel (string), causing an "Array to string conversion" notice.
-        // Suppress the notice to test the functional behavior.
-        $oldLevel = error_reporting(error_reporting() & ~E_NOTICE);
+        $this->publisher->publish('Subject', 'Body', ['UNSUPPORTED_CHANNEL']);
 
-        try {
-            $this->publisher->publish('Subject', 'Body', ['UNSUPPORTED_CHANNEL']);
+        $message = json_decode($this->stubClient->publishCalls[0]['Message'], true);
 
-            $message = json_decode($this->stubClient->publishCalls[0]['Message'], true);
-
-            $this->assertSame('Body', $message['default']);
-            $this->assertArrayNotHasKey('UNSUPPORTED_CHANNEL', $message);
-        } finally {
-            error_reporting($oldLevel);
-        }
+        $this->assertSame('Body', $message['default']);
+        $this->assertArrayNotHasKey('UNSUPPORTED_CHANNEL', $message);
     }
 
     // ================================================================

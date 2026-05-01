@@ -10,6 +10,7 @@ namespace Oasis\Mlib\AwsWrappers;
 
 use Oasis\Mlib\AwsWrappers\Contracts\QueueMessageInterface;
 use Oasis\Mlib\Utils\ArrayDataProvider;
+use Oasis\Mlib\Utils\DataType;
 use Oasis\Mlib\Utils\StringUtils;
 
 class SqsReceivedMessage extends SqsMessage implements QueueMessageInterface
@@ -26,11 +27,11 @@ class SqsReceivedMessage extends SqsMessage implements QueueMessageInterface
         
         $dp = new ArrayDataProvider($msg_array);
         
-        $this->receiptHandle      = $dp->getMandatory('ReceiptHandle', ArrayDataProvider::STRING_TYPE);
-        $this->originalBody       = $dp->getMandatory('Body', ArrayDataProvider::STRING_TYPE);
-        $this->md5OfBody          = $dp->getMandatory('MD5OfBody', ArrayDataProvider::STRING_TYPE);
-        $this->originalAttributes = $dp->getOptional('MessageAttributes', ArrayDataProvider::ARRAY_TYPE, []);
-        $this->md5OfAttributes    = $dp->getOptional('MD5OfMessageAttributes', ArrayDataProvider::STRING_TYPE, '');
+        $this->receiptHandle      = $dp->getMandatory('ReceiptHandle', DataType::String);
+        $this->originalBody       = $dp->getMandatory('Body', DataType::String);
+        $this->md5OfBody          = $dp->getMandatory('MD5OfBody', DataType::String);
+        $this->originalAttributes = $dp->getOptional('MessageAttributes', DataType::Array, []);
+        $this->md5OfAttributes    = $dp->getOptional('MD5OfMessageAttributes', DataType::String, '');
         
         $this->validate();
         

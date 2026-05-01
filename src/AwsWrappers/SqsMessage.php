@@ -10,6 +10,7 @@ namespace Oasis\Mlib\AwsWrappers;
 
 
 use Oasis\Mlib\Utils\ArrayDataProvider;
+use Oasis\Mlib\Utils\DataType;
 
 class SqsMessage
 {
@@ -20,7 +21,7 @@ class SqsMessage
     function __construct(array $arr_message)
     {
         $dp              = new ArrayDataProvider($arr_message);
-        $this->messageId = $dp->getMandatory('MessageId', ArrayDataProvider::STRING_TYPE);
+        $this->messageId = $dp->getMandatory('MessageId', DataType::String);
     }
 
     /**

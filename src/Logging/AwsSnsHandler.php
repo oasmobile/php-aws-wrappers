@@ -9,7 +9,8 @@
 namespace Oasis\Mlib\Logging;
 
 use Monolog\Handler\AbstractProcessingHandler;
-use Monolog\Logger;
+use Monolog\Level;
+use Monolog\LogRecord;
 use Oasis\Mlib\AwsWrappers\SnsPublisher;
 
 class AwsSnsHandler extends AbstractProcessingHandler
@@ -25,7 +26,7 @@ class AwsSnsHandler extends AbstractProcessingHandler
     
     public function __construct(SnsPublisher $publisher,
                                 $subject,
-                                $level = Logger::DEBUG,
+                                $level = Level::Debug,
                                 $bubble = true)
     {
         parent::__construct($level, $bubble);
@@ -34,7 +35,7 @@ class AwsSnsHandler extends AbstractProcessingHandler
         $this->subject   = $subject;
     }
     
-    public function handleBatch(array $records)
+    public function handleBatch(array $records): void
     {
         $this->isBatchHandling = true;
         parent::handleBatch($records);
@@ -84,19 +85,15 @@ class AwsSnsHandler extends AbstractProcessingHandler
     
     /**
      * Writes the record down to the log of the implementing handler
-     *
-     * @param  array $record
-     *
-     * @return void
      */
-    protected function write(array $record)
+    protected function write(LogRecord $record): void
     {
         if (!$this->isBatchHandling) {
-            $this->contentBuffer = $record['formatted'];
+            $this->contentBuffer = $record->formatted;
             $this->publishContent();
         }
         else {
-            $this->contentBuffer = $record['formatted'] . $this->contentBuffer;
+            $this->contentBuffer = $record->formatted . $this->contentBuffer;
         }
     }
 }

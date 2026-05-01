@@ -2,7 +2,9 @@
 
 namespace Oasis\Mlib\AwsWrappers\Test\Unit;
 
+use Monolog\Level;
 use Monolog\Logger;
+use Monolog\LogRecord;
 use Oasis\Mlib\AwsWrappers\SnsPublisher;
 use Oasis\Mlib\Logging\AwsSnsHandler;
 use PHPUnit\Framework\TestCase;
@@ -94,9 +96,9 @@ class AwsSnsHandlerTest extends TestCase
     public function testHandleBatchPublishesOnce()
     {
         $records = [
-            $this->createLogRecord('First message', Logger::DEBUG),
-            $this->createLogRecord('Second message', Logger::INFO),
-            $this->createLogRecord('Third message', Logger::WARNING),
+            $this->createLogRecord('First message', Level::Debug),
+            $this->createLogRecord('Second message', Level::Info),
+            $this->createLogRecord('Third message', Level::Warning),
         ];
 
         $this->handler->handleBatch($records);
@@ -108,8 +110,8 @@ class AwsSnsHandlerTest extends TestCase
     public function testHandleBatchContainsAllMessages()
     {
         $records = [
-            $this->createLogRecord('Alpha', Logger::DEBUG),
-            $this->createLogRecord('Beta', Logger::INFO),
+            $this->createLogRecord('Alpha', Level::Debug),
+            $this->createLogRecord('Beta', Level::Info),
         ];
 
         $this->handler->handleBatch($records);
@@ -122,7 +124,7 @@ class AwsSnsHandlerTest extends TestCase
     public function testHandleBatchUsesSubject()
     {
         $records = [
-            $this->createLogRecord('Test', Logger::DEBUG),
+            $this->createLogRecord('Test', Level::Debug),
         ];
 
         $this->handler->handleBatch($records);
@@ -148,13 +150,13 @@ class AwsSnsHandlerTest extends TestCase
     public function testHandleBatchFiltersRecordsBelowLevel()
     {
         // Create handler with WARNING level
-        $handler = new AwsSnsHandler($this->stubPublisher, 'Subject', Logger::WARNING);
+        $handler = new AwsSnsHandler($this->stubPublisher, 'Subject', Level::Warning);
         $logger  = new Logger('test');
         $logger->pushHandler($handler);
 
         $records = [
-            $this->createLogRecord('Debug msg', Logger::DEBUG),
-            $this->createLogRecord('Warning msg', Logger::WARNING),
+            $this->createLogRecord('Debug msg', Level::Debug),
+            $this->createLogRecord('Warning msg', Level::Warning),
         ];
 
         $handler->handleBatch($records);
@@ -225,7 +227,7 @@ class AwsSnsHandlerTest extends TestCase
     public function testConstructorLevelFiltering()
     {
         $publisher = new StubSnsPublisher();
-        $handler   = new AwsSnsHandler($publisher, 'Subject', Logger::ERROR);
+        $handler   = new AwsSnsHandler($publisher, 'Subject', Level::Error);
         $logger    = new Logger('test');
         $logger->pushHandler($handler);
 
@@ -247,8 +249,8 @@ class AwsSnsHandlerTest extends TestCase
         $publisher1 = new StubSnsPublisher();
         $publisher2 = new StubSnsPublisher();
 
-        $handler1 = new AwsSnsHandler($publisher1, 'H1', Logger::DEBUG, false);
-        $handler2 = new AwsSnsHandler($publisher2, 'H2', Logger::DEBUG, true);
+        $handler1 = new AwsSnsHandler($publisher1, 'H1', Level::Debug, false);
+        $handler2 = new AwsSnsHandler($publisher2, 'H2', Level::Debug, true);
 
         $logger = new Logger('test');
         // handler1 is pushed last, so it processes first
@@ -275,25 +277,16 @@ class AwsSnsHandlerTest extends TestCase
     }
 
     // ================================================================
-    // Helper: create a log record compatible with Monolog
+    // Helper: create a LogRecord compatible with Monolog 3.x
     // ================================================================
 
-    /**
-     * @param string $message
-     * @param int    $level
-     *
-     * @return array
-     */
-    private function createLogRecord($message, $level)
+    private function createLogRecord(string $message, Level $level): LogRecord
     {
-        return [
-            'message'    => $message,
-            'context'    => [],
-            'level'      => $level,
-            'level_name' => Logger::getLevelName($level),
-            'channel'    => 'test',
-            'datetime'   => new \DateTime(),
-            'extra'      => [],
-        ];
+        return new LogRecord(
+            datetime: new \DateTimeImmutable(),
+            channel:  'test',
+            level:    $level,
+            message:  $message,
+        );
     }
 }

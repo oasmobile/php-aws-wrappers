@@ -83,7 +83,7 @@
     - _Requirements: 1.1, 1.2, 1.4_
   - [x] 3.7 Checkpoint: 运行 `php74 vendor/bin/phpunit --testsuite unit` 确认全部单元测试通过（Phase 1 完成），commit
 
-- [-] 4. Phase 2: PHPUnit 13 + PHP 8.5 + 依赖升级（含 symfony/cache 替换）
+- [x] 4. Phase 2: PHPUnit 13 + PHP 8.5 + 依赖升级（含 symfony/cache 替换）
   - [x] 4.1 编写 `AwsConfigDataProvider` 缓存替换的单元测试
     - 在 `ut/unit/AwsConfigDataProviderTest.php` 中补充 IAM Role 凭证缓存路径的测试用例，验证 `symfony/cache` 替换后的行为
     - 测试应先于实现编写（RED），此时测试预期会失败
@@ -133,7 +133,7 @@
     - 运行全量测试，检查并修复源代码中的 PHP 8.5 弃用用法
     - 确保零 deprecation warning
     - _Requirements: 4.2, 4.3, 4.4_
-  - [-] 4.9 Checkpoint: 使用 PHP 8.5 运行 `php vendor/bin/phpunit --testsuite unit` 确认全部单元测试通过（Req 2 AC4, Req 4 AC3）；如有 AWS 凭证可运行 `php vendor/bin/phpunit --testsuite integration` 验证（Req 3 AC5, Req 4 AC4），commit
+  - [x] 4.9 Checkpoint: 使用 PHP 8.5 运行 `php vendor/bin/phpunit --testsuite unit` 确认全部单元测试通过（Req 2 AC4, Req 4 AC3）；如有 AWS 凭证可运行 `php vendor/bin/phpunit --testsuite integration` 验证（Req 3 AC5, Req 4 AC4），commit
 
 - [ ] 5. Phase 3: 源代码风格现代化
   - [ ] 5.1 编写风格现代化的回归测试基线

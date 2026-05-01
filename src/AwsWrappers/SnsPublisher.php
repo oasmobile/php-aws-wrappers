@@ -102,7 +102,7 @@ class SnsPublisher implements PublisherInterface
 XML;
                     break;
                 default:
-                    mwarning("Channel [%s] is not supported by %s", $channels, static::class);
+                    mwarning("Channel [%s] is not supported by %s", $channel, static::class);
                     $is_supported = false;
                     break;
             }
