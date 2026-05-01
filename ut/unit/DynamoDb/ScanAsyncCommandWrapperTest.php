@@ -160,8 +160,7 @@ class ScanAsyncCommandWrapperTest extends TestCase
         $this->stub->scanAsyncResults = [new FulfilledPromise('ok')];
 
         $lastKey = null;
-        // Suppress deprecated implode() parameter order warning in source code
-        @call_user_func_array($this->wrapper, [
+        call_user_func_array($this->wrapper, [
             $this->stub,
             'my-table',
             null,
@@ -195,7 +194,7 @@ class ScanAsyncCommandWrapperTest extends TestCase
         $this->stub->scanAsyncResults = [new FulfilledPromise('ok')];
 
         $lastKey = null;
-        @call_user_func_array($this->wrapper, [
+        call_user_func_array($this->wrapper, [
             $this->stub,
             'my-table',
             null,

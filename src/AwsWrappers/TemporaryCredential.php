@@ -2,8 +2,6 @@
 
 namespace Oasis\Mlib\AwsWrappers;
 
-use Aws\Api\DateTimeResult;
-
 class TemporaryCredential
 {
     public ?string $accessKeyId = null;

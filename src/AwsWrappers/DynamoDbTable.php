@@ -691,7 +691,7 @@ class DynamoDbTable
         return $this->dbClient;
     }
     
-    public function getGlobalSecondaryIndices(string $namePattern = "/.*/"):  array
+    public function getGlobalSecondaryIndices(string $namePattern = "/.*/"): array
     {
         $description = $this->describe();
         $gsiDefs     = isset($description['GlobalSecondaryIndexes']) ? $description['GlobalSecondaryIndexes'] : null;

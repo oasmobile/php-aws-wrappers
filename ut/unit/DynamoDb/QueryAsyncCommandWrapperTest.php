@@ -207,8 +207,7 @@ class QueryAsyncCommandWrapperTest extends TestCase
         $this->stub->queryAsyncResults = [new FulfilledPromise('ok')];
 
         $lastKey = null;
-        // Suppress deprecated implode() parameter order warning in source code
-        @call_user_func_array($this->wrapper, [
+        call_user_func_array($this->wrapper, [
             $this->stub,
             'my-table',
             '#pk = :pk',
@@ -244,7 +243,7 @@ class QueryAsyncCommandWrapperTest extends TestCase
         $lastKey = null;
         // '#name' already maps to 'different_field' in fieldsMapping,
         // but projectedFields wants '#name' → 'name'
-        @call_user_func_array($this->wrapper, [
+        call_user_func_array($this->wrapper, [
             $this->stub,
             'my-table',
             '#pk = :pk',
