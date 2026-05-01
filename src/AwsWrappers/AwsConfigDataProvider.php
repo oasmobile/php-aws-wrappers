@@ -1,10 +1,4 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: minhao
- * Date: 2017-05-08
- * Time: 14:35
- */
 
 namespace Oasis\Mlib\AwsWrappers;
 
@@ -16,15 +10,9 @@ use Oasis\Mlib\Utils\Exceptions\MandatoryValueMissingException;
 
 class AwsConfigDataProvider
 {
-    protected $config;
+    protected array $config;
     
-    /**
-     * AwsConfigDataProvider constructor.
-     *
-     * @param array $data
-     * @param null  $version
-     */
-    public function __construct(array $data, $version = null)
+    public function __construct(array $data, ?string $version = null)
     {
         if (!isset($data['region'])) {
             throw new MandatoryValueMissingException("Region must be specified in the AWS config!");
@@ -61,15 +49,10 @@ class AwsConfigDataProvider
         }
         
         $this->config = $data;
-        
     }
     
-    /**
-     * @return array
-     */
-    public function getConfig()
+    public function getConfig(): array
     {
         return $this->config;
     }
-    
 }

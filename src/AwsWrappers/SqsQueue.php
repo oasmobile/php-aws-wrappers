@@ -1,10 +1,4 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: minhao
- * Date: 2015-10-10
- * Time: 14:24
- */
 
 namespace Oasis\Mlib\AwsWrappers;
 
@@ -15,7 +9,7 @@ use Oasis\Mlib\AwsWrappers\Contracts\QueueInterface;
 use Oasis\Mlib\Event\EventDispatcherInterface;
 use Oasis\Mlib\Event\EventDispatcherTrait;
 
-class SqsQueue implements EventDispatcherInterface,QueueInterface
+class SqsQueue implements EventDispatcherInterface, QueueInterface
 {
     use EventDispatcherTrait;
     
@@ -59,22 +53,20 @@ class SqsQueue implements EventDispatcherInterface,QueueInterface
     ];
     const SERIALIZATION_FLAG = '_serialization';
     
-    /** @var SqsClient */
-    protected $client;
-    protected $config;
-    protected $url = null;
-    protected $name;
-    /** @var array */
-    protected $sendFailureMessages = [];
+    protected SqsClient $client;
+    protected array $config = [];
+    protected ?string $url = null;
+    protected readonly string $name;
+    protected array $sendFailureMessages = [];
     
-    public function __construct($awsConfig, $name)
+    public function __construct(mixed $awsConfig, string $name)
     {
         $dp           = new AwsConfigDataProvider($awsConfig, '2012-11-05');
         $this->client = new SqsClient($dp->getConfig());
         $this->name   = $name;
     }
     
-    public function createQueue(array $attributes = [])
+    public function createQueue(array $attributes = []): void
     {
         $args = [
             'QueueName' => $this->name,
@@ -92,10 +84,7 @@ class SqsQueue implements EventDispatcherInterface,QueueInterface
         $this->url = $result['QueueUrl'];
     }
 
-    /**
-     * @param  SqsReceivedMessage  $msg
-     */
-    public function deleteMessage($msg)
+    public function deleteMessage(mixed $msg): void
     {
         $this->client->deleteMessage(
             [
@@ -105,7 +94,7 @@ class SqsQueue implements EventDispatcherInterface,QueueInterface
         );
     }
     
-    public function deleteMessages($messages)
+    public function deleteMessages(mixed $messages): void
     {
         $total = count($messages);
         if (!$total) {
@@ -130,7 +119,7 @@ class SqsQueue implements EventDispatcherInterface,QueueInterface
         }
     }
     
-    public function deleteQueue()
+    public function deleteQueue(): void
     {
         $args = [
             "QueueUrl" => $this->getQueueUrl(),
@@ -138,7 +127,7 @@ class SqsQueue implements EventDispatcherInterface,QueueInterface
         $this->client->deleteQueue($args);
     }
     
-    public function exists()
+    public function exists(): bool
     {
         try {
             $this->url = '';
@@ -155,7 +144,7 @@ class SqsQueue implements EventDispatcherInterface,QueueInterface
         }
     }
     
-    public function purge()
+    public function purge(): void
     {
         $this->client->purgeQueue(
             [
@@ -164,15 +153,7 @@ class SqsQueue implements EventDispatcherInterface,QueueInterface
         );
     }
     
-    /**
-     * @param int   $wait
-     * @param int   $visibility_timeout
-     * @param array $metas
-     * @param array $message_attributes
-     *
-     * @return SqsReceivedMessage
-     */
-    public function receiveMessage($wait = null, $visibility_timeout = null, $metas = [], $message_attributes = [])
+    public function receiveMessage(?int $wait = null, ?int $visibility_timeout = null, array $metas = [], array $message_attributes = []): ?SqsReceivedMessage
     {
         $ret = $this->receiveMessageBatch(1, $wait, $visibility_timeout, $metas, $message_attributes);
         if (!$ret) {
@@ -183,37 +164,22 @@ class SqsQueue implements EventDispatcherInterface,QueueInterface
         }
     }
     
-    /**
-     * @param array $expected_message_attributes
-     * @param int   $wait
-     * @param int   $visibility_timeout
-     * @param array $metas
-     *
-     * @return SqsReceivedMessage
-     */
     public function receiveMessageWithAttributes(array $expected_message_attributes,
-                                                 $wait = null,
-                                                 $visibility_timeout = null,
-                                                 $metas = [])
+                                                 ?int $wait = null,
+                                                 ?int $visibility_timeout = null,
+                                                 array $metas = []): ?SqsReceivedMessage
     {
         return $this->receiveMessage($wait, $visibility_timeout, $metas, $expected_message_attributes);
     }
     
     /**
-     * @param int   $max_count
-     * @param int   $wait
-     * @param int   $visibility_timeout
-     * @param array $metas
-     *
-     * @param array $message_attributes
-     *
      * @return SqsReceivedMessage[]
      */
-    public function receiveMessages($max_count,
-                                    $wait = null,
-                                    $visibility_timeout = null,
-                                    $metas = [],
-                                    $message_attributes = [])
+    public function receiveMessages(int $max_count,
+                                    ?int $wait = null,
+                                    ?int $visibility_timeout = null,
+                                    array $metas = [],
+                                    array $message_attributes = []): array
     {
         if ($max_count <= 0) {
             return [];
@@ -231,11 +197,6 @@ class SqsQueue implements EventDispatcherInterface,QueueInterface
             $buffer = array_merge($buffer, $msgs);
             $this->dispatch(self::READ_PROGRESS, count($buffer) / $max_count);
             
-            // commented out because sometimes a full queue will somehow return less than 10 messages in a batch
-            //if (count($msgs) < 10) {
-            //    break;
-            //}
-            
             $one_batch = min(10, $max_count - count($buffer));
             if ($one_batch <= 0) {
                 break;
@@ -245,14 +206,7 @@ class SqsQueue implements EventDispatcherInterface,QueueInterface
         return $buffer;
     }
     
-    /**
-     * @param       $payroll
-     * @param int   $delay
-     * @param array $attributes
-     *
-     * @return bool|SqsSentMessage
-     */
-    public function sendMessage($payroll, $delay = 0, $attributes = [])
+    public function sendMessage(mixed $payroll, int $delay = 0, array $attributes = []): SqsSentMessage|false
     {
         $sentMessages = $this->sendMessages([$payroll], $delay, [$attributes]);
         if (!$sentMessages) {
@@ -264,16 +218,11 @@ class SqsQueue implements EventDispatcherInterface,QueueInterface
     }
     
     /**
-     * @param array $payrolls
-     * @param int   $delay
-     * @param array $attributesList
-     * @param int   $concurrency
-     *
      * @return SqsSentMessage[] successful messages
      *
      * @NOTE: for failed messages, you can call getSendFailureMessages()
      */
-    public function sendMessages(array $payrolls, $delay = 0, array $attributesList = [], $concurrency = 10)
+    public function sendMessages(array $payrolls, int $delay = 0, array $attributesList = [], int $concurrency = 10): array
     {
         if ($attributesList && count($payrolls) != count($attributesList)) {
             throw new \UnexpectedValueException("Attribute list size is different than num of payrolls!");
@@ -324,7 +273,7 @@ class SqsQueue implements EventDispatcherInterface,QueueInterface
                 &$progressCount,
                 &$md5Expectation,
                 $total
-            ) {
+            ): void {
                 if (isset($result['Failed'])) {
                     foreach ($result['Failed'] as $failed) {
                         mwarning(
@@ -352,7 +301,7 @@ class SqsQueue implements EventDispatcherInterface,QueueInterface
                 }
                 $this->dispatch(self::SEND_PROGRESS, $progressCount / $total);
             },
-            function ($e) {
+            function ($e): void {
                 merror("Exception got: %s!", get_class($e));
                 if ($e instanceof SqsException) {
                     mtrace(
@@ -372,14 +321,14 @@ class SqsQueue implements EventDispatcherInterface,QueueInterface
         return $sentMessages;
     }
     
-    public function getAttribute($name)
+    public function getAttribute(string $name): mixed
     {
         $result = $this->getAttributes([$name]);
         
         return $result[$name];
     }
     
-    public function getAttributes(array $attributeNames)
+    public function getAttributes(array $attributeNames): array
     {
         $args = [
             'QueueUrl' => $this->getQueueUrl(),
@@ -403,15 +352,12 @@ class SqsQueue implements EventDispatcherInterface,QueueInterface
         return $result['Attributes'];
     }
     
-    /**
-     * @return string
-     */
-    public function getName()
+    public function getName(): string
     {
         return $this->name;
     }
     
-    public function getQueueUrl()
+    public function getQueueUrl(): string
     {
         if (!$this->url) {
             $result = $this->client->getQueueUrl(
@@ -430,18 +376,12 @@ class SqsQueue implements EventDispatcherInterface,QueueInterface
         return $this->url;
     }
     
-    /**
-     * In the format of idx => reason, idx is the array index of payrolls passed to sendMessages(). In case of sending
-     * only one message using sendMessage(), the idx is 0
-     *
-     * @return SqsSentMessage[]
-     */
-    public function getSendFailureMessages()
+    public function getSendFailureMessages(): array
     {
         return $this->sendFailureMessages;
     }
     
-    public function setAttributes(array $attributes)
+    public function setAttributes(array $attributes): void
     {
         $args = [
             'QueueUrl' => $this->getQueueUrl(),
@@ -461,7 +401,7 @@ class SqsQueue implements EventDispatcherInterface,QueueInterface
         $this->client->setQueueAttributes($args);
     }
     
-    protected function deleteMessageBatch($msgs)
+    protected function deleteMessageBatch(array $msgs): void
     {
         $entries = [];
         /** @var SqsReceivedMessage $bmsg */
@@ -494,19 +434,13 @@ class SqsQueue implements EventDispatcherInterface,QueueInterface
     }
     
     /**
-     * @param int   $maxCount
-     * @param int   $wait
-     * @param int   $visibilityTimeout
-     * @param array $metas
-     * @param array $messageAttributes
-     *
      * @return SqsReceivedMessage[]
      */
-    protected function receiveMessageBatch($maxCount = 1,
-                                           $wait = null,
-                                           $visibilityTimeout = null,
-                                           $metas = [],
-                                           $messageAttributes = [])
+    protected function receiveMessageBatch(int $maxCount = 1,
+                                           ?int $wait = null,
+                                           ?int $visibilityTimeout = null,
+                                           array $metas = [],
+                                           array $messageAttributes = []): array
     {
         if ($maxCount > 10 || $maxCount < 1) {
             throw new \InvalidArgumentException("Max count for SQS message receiving is 10");
@@ -544,7 +478,7 @@ class SqsQueue implements EventDispatcherInterface,QueueInterface
         return $ret;
     }
     
-    protected function getSendMessageBatchAsyncPromise(array $payrolls, array $attributes, $delay)
+    protected function getSendMessageBatchAsyncPromise(array $payrolls, array $attributes, int $delay): mixed
     {
         $entries = [];
         foreach ($payrolls as $idx => $payroll) {
@@ -557,7 +491,7 @@ class SqsQueue implements EventDispatcherInterface,QueueInterface
             }
             if ($attributes) {
                 $attributes[$idx]           = array_map(
-                    function ($v) {
+                    function (mixed $v): array {
                         if (!is_string($v)) {
                             throw new \InvalidArgumentException(
                                 "Only string attribute is supported! attribute got: " . json_encode($v)
@@ -578,6 +512,5 @@ class SqsQueue implements EventDispatcherInterface,QueueInterface
         ];
         
         return $this->client->sendMessageBatchAsync($args);
-        
     }
 }

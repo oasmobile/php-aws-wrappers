@@ -1,10 +1,4 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: minhao
- * Date: 2017-01-11
- * Time: 16:54
- */
 
 namespace Oasis\Mlib\AwsWrappers\DynamoDb;
 
@@ -15,22 +9,22 @@ use Oasis\Mlib\AwsWrappers\DynamoDbItem;
 
 class MultiQueryCommandWrapper
 {
-    function __invoke(DynamoDbClient $dbClient,
-                      $tableName,
-                      callable $callback,
-                      $hashKeyName,
-                      $hashKeyValues,
-                      $rangeKeyConditions,
-                      array $fieldsMapping,
-                      array $paramsMapping,
-                      $indexName,
-                      $filterExpression,
-                      $evaluationLimit,
-                      $isConsistentRead,
-                      $isAscendingOrder,
-                      $concurrency,
-                      $projectedFields
-    )
+    public function __invoke(DynamoDbClient $dbClient,
+                             string $tableName,
+                             callable $callback,
+                             string $hashKeyName,
+                             array $hashKeyValues,
+                             ?string $rangeKeyConditions,
+                             array $fieldsMapping,
+                             array $paramsMapping,
+                             string|bool $indexName,
+                             ?string $filterExpression,
+                             ?int $evaluationLimit,
+                             bool $isConsistentRead,
+                             bool $isAscendingOrder,
+                             int $concurrency,
+                             array $projectedFields
+    ): void
     {
         $fieldsMapping["#" . $hashKeyName] = $hashKeyName;
         $keyConditions                     = sprintf(
@@ -66,11 +60,10 @@ class MultiQueryCommandWrapper
             $isConsistentRead,
             $isAscendingOrder,
             $projectedFields
-        ) {
+        ): \Generator {
             while (!$stopped && !$queue->isEmpty()) {
                 list($hashKeyValue, $lastKey) = $queue->shift();
                 if ($lastKey === null) {
-                    //minfo("Finished for hash key %s", $hashKeyValue);
                     continue;
                 }
                 $paramsMapping[":" . $hashKeyName] = $hashKeyValue;
@@ -90,7 +83,6 @@ class MultiQueryCommandWrapper
                     false,
                     $projectedFields
                 );
-                //mdebug("yielded %s", \GuzzleHttp\json_encode($paramsMapping));
                 yield $hashKeyValue => $promise;
             }
         };
@@ -100,7 +92,7 @@ class MultiQueryCommandWrapper
             \GuzzleHttp\Promise\Each::ofLimit(
                 $generator(),
                 $concurrency,
-                function (Result $result, $hashKeyValue) use ($callback, $queue, &$stopped) {
+                function (Result $result, $hashKeyValue) use ($callback, $queue, &$stopped): void {
                     $lastKey = isset($result['LastEvaluatedKey']) ? $result['LastEvaluatedKey'] : null;
                     $items   = isset($result['Items']) ? $result['Items'] : [];
                     foreach ($items as $typedItem) {
@@ -115,12 +107,10 @@ class MultiQueryCommandWrapper
                 ,
                 function (DynamoDbException $reason,
                     /** @noinspection PhpUnusedParameterInspection */
-                          $hashKeyValue) {
-                    //mtrace($reason, "Error while processing hash key $hashKeyValue");
+                          $hashKeyValue): void {
                     throw $reason;
                 }
             )->wait();
         }
     }
-    
 }

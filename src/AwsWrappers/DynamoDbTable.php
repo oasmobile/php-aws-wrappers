@@ -1,10 +1,4 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: minhao
- * Date: 2015-10-29
- * Time: 14:07
- */
 
 namespace Oasis\Mlib\AwsWrappers;
 
@@ -19,15 +13,14 @@ use Oasis\Mlib\AwsWrappers\DynamoDb\ScanCommandWrapper;
 
 class DynamoDbTable
 {
-    /** @var DynamoDbClient */
-    protected $dbClient;
+    protected DynamoDbClient $dbClient;
     
-    protected $config;
+    protected array $config;
     
-    protected $tableName;
-    protected $attributeTypes = [];
+    protected readonly string $tableName;
+    protected array $attributeTypes = [];
     
-    function __construct(array $awsConfig, $tableName, $attributeTypes = [])
+    public function __construct(array $awsConfig, string $tableName, array $attributeTypes = [])
     {
         $dp                   = new AwsConfigDataProvider($awsConfig, '2012-08-10');
         $this->dbClient       = new DynamoDbClient($dp->getConfig());
@@ -35,7 +28,7 @@ class DynamoDbTable
         $this->attributeTypes = $attributeTypes;
     }
     
-    public function addGlobalSecondaryIndex(DynamoDbIndex $gsi, $readCapacity = 5, $writeCapacity = 5)
+    public function addGlobalSecondaryIndex(DynamoDbIndex $gsi, int $readCapacity = 5, int $writeCapacity = 5): void
     {
         if ($this->getGlobalSecondaryIndices(sprintf("/%s/", preg_quote($gsi->getName(), "/")))) {
             throw new \RuntimeException("Global Secondary Index exists, name = " . $gsi->getName());
@@ -61,20 +54,20 @@ class DynamoDbTable
     }
     
     public function batchDelete(array $objs,
-                                $concurrency = 10,
-                                $maxDelay = 15000)
+                                int $concurrency = 10,
+                                int $maxDelay = 15000): void
     {
         $this->doBatchWrite(false, $objs, $concurrency, false, 0, $maxDelay);
     }
     
     public function batchGet(array $keys,
-                             $isConsistentRead = false,
-                             $concurrency = 10,
-                             $projectedFields = [],
-                             $keyIsTyped = false,
-                             $retryDelay = 0,
-                             $maxDelay = 15000
-    )
+                             bool $isConsistentRead = false,
+                             int $concurrency = 10,
+                             array $projectedFields = [],
+                             bool $keyIsTyped = false,
+                             int $retryDelay = 0,
+                             int $maxDelay = 15000
+    ): array
     {
         $mappingArgs = [];
         if ($projectedFields) {
@@ -91,14 +84,14 @@ class DynamoDbTable
         $promises      = [];
         $reads         = [];
         $unprocessed   = [];
-        $flushCallback = function ($limit = 100) use (
+        $flushCallback = function (int $limit = 100) use (
             &$mappingArgs,
             &$promises,
             &$reads,
             &$unprocessed,
             $isConsistentRead,
             &$returnSet
-        ) {
+        ): void {
             if (count($reads) >= $limit) {
                 $reqArgs    = [
                     "RequestItems" => [
@@ -110,7 +103,6 @@ class DynamoDbTable
                             ]
                         ),
                     ],
-                    //"ReturnConsumedCapacity" => "TOTAL",
                 ];
                 $promise    = $this->dbClient->batchGetItemAsync($reqArgs);
                 $promises[] = $promise;
@@ -125,11 +117,11 @@ class DynamoDbTable
             call_user_func($flushCallback);
         }
         call_user_func($flushCallback, 1);
-        
+
         \GuzzleHttp\Promise\Each::ofLimit(
             $promises,
             $concurrency,
-            function (Result $result) use (&$unprocessed, &$returnSet) {
+            function (Result $result) use (&$unprocessed, &$returnSet): void {
                 $unprocessedKeys = $result['UnprocessedKeys'];
                 if (isset($unprocessedKeys[$this->tableName]["Keys"])) {
                     $currentUnprocessed = $unprocessedKeys[$this->tableName]["Keys"];
@@ -139,15 +131,13 @@ class DynamoDbTable
                     }
                 }
                 if (isset($result['Responses'][$this->tableName])) {
-                    //mdebug("%d items got.", count($result['Responses'][$this->tableName]));
                     foreach ($result['Responses'][$this->tableName] as $item) {
                         $item        = DynamoDbItem::createFromTypedArray($item);
                         $returnSet[] = $item->toArray();
                     }
                 }
-                //mdebug("Consumed = %.1f", $result['ConsumedCapacity'][0]['CapacityUnits']);
             },
-            function ($e) {
+            function ($e): void {
                 merror("Exception got: %s!", get_class($e));
                 if ($e instanceof DynamoDbException) {
                     mtrace(
@@ -172,22 +162,21 @@ class DynamoDbTable
             }
             $returnSet = array_merge(
                 $returnSet,
-                $this->batchGet($unprocessed, $isConsistentRead, $concurrency, $projectedFields, true, $nextRetry)
+                $this->batchGet($unprocessed, $isConsistentRead, $concurrency, $projectedFields, true, (int)$nextRetry)
             );
         }
         
         return $returnSet;
-        
     }
     
     public function batchPut(array $objs,
-                             $concurrency = 10,
-                             $maxDelay = 15000)
+                             int $concurrency = 10,
+                             int $maxDelay = 15000): void
     {
         $this->doBatchWrite(true, $objs, $concurrency, false, 0, $maxDelay);
     }
     
-    public function delete($keys)
+    public function delete(array $keys): void
     {
         $keyItem = DynamoDbItem::createFromArray($keys, $this->attributeTypes);
         
@@ -199,7 +188,7 @@ class DynamoDbTable
         $this->dbClient->deleteItem($requestArgs);
     }
     
-    public function deleteGlobalSecondaryIndex($indexName)
+    public function deleteGlobalSecondaryIndex(string $indexName): void
     {
         if (!$this->getGlobalSecondaryIndices(sprintf("/%s/", preg_quote($indexName, "/")))) {
             throw new \RuntimeException("Global Secondary Index doesn't exist, name = $indexName");
@@ -218,7 +207,7 @@ class DynamoDbTable
         $this->dbClient->updateTable($args);
     }
     
-    public function describe()
+    public function describe(): array
     {
         $requestArgs = [
             "TableName" => $this->tableName,
@@ -228,7 +217,7 @@ class DynamoDbTable
         return $result['Table'];
     }
     
-    public function disableStream()
+    public function disableStream(): void
     {
         $args = [
             "TableName"           => $this->tableName,
@@ -239,7 +228,7 @@ class DynamoDbTable
         $this->dbClient->updateTable($args);
     }
     
-    public function enableStream($type = "NEW_AND_OLD_IMAGES")
+    public function enableStream(string $type = "NEW_AND_OLD_IMAGES"): void
     {
         $args = [
             "TableName"           => $this->tableName,
@@ -251,7 +240,7 @@ class DynamoDbTable
         $this->dbClient->updateTable($args);
     }
     
-    public function get(array $keys, $is_consistent_read = false, $projectedFields = [])
+    public function get(array $keys, bool $is_consistent_read = false, array $projectedFields = []): ?array
     {
         $keyItem     = DynamoDbItem::createFromArray($keys, $this->attributeTypes);
         $requestArgs = [
@@ -282,7 +271,7 @@ class DynamoDbTable
         }
     }
     
-    public function isStreamEnabled(&$streamViewType = null)
+    public function isStreamEnabled(?string &$streamViewType = null): bool
     {
         $streamViewType = null;
         $description    = $this->describe();
@@ -298,19 +287,19 @@ class DynamoDbTable
     }
     
     public function multiQueryAndRun(callable $callback,
-                                     $hashKeyName,
-                                     $hashKeyValues,
-                                     $rangeKeyConditions,
+                                     string $hashKeyName,
+                                     array $hashKeyValues,
+                                     string $rangeKeyConditions,
                                      array $fieldsMapping,
                                      array $paramsMapping,
-                                     $indexName = DynamoDbIndex::PRIMARY_INDEX,
-                                     $filterExpression = '',
-                                     $evaluationLimit = 30,
-                                     $isConsistentRead = false,
-                                     $isAscendingOrder = true,
-                                     $concurrency = 10,
-                                     $projectedFields = []
-    )
+                                     string|bool $indexName = DynamoDbIndex::PRIMARY_INDEX,
+                                     string $filterExpression = '',
+                                     int $evaluationLimit = 30,
+                                     bool $isConsistentRead = false,
+                                     bool $isAscendingOrder = true,
+                                     int $concurrency = 10,
+                                     array $projectedFields = []
+    ): void
     {
         $wrapper = new MultiQueryCommandWrapper();
         $wrapper(
@@ -332,15 +321,15 @@ class DynamoDbTable
         );
     }
     
-    public function parallelScanAndRun($parallel,
+    public function parallelScanAndRun(int $parallel,
                                        callable $callback,
-                                       $filterExpression = '',
+                                       string $filterExpression = '',
                                        array $fieldsMapping = [],
                                        array $paramsMapping = [],
-                                       $indexName = DynamoDbIndex::PRIMARY_INDEX,
-                                       $isConsistentRead = false,
-                                       $isAscendingOrder = true,
-                                       $projectedFields = [])
+                                       string|bool $indexName = DynamoDbIndex::PRIMARY_INDEX,
+                                       bool $isConsistentRead = false,
+                                       bool $isAscendingOrder = true,
+                                       array $projectedFields = []): void
     {
         $wrapper = new ParallelScanCommandWrapper();
         
@@ -361,17 +350,17 @@ class DynamoDbTable
         );
     }
     
-    public function query($keyConditions,
+    public function query(string $keyConditions,
                           array $fieldsMapping,
                           array $paramsMapping,
-                          $indexName = DynamoDbIndex::PRIMARY_INDEX,
-                          $filterExpression = '',
-                          &$lastKey = null,
-                          $evaluationLimit = 30,
-                          $isConsistentRead = false,
-                          $isAscendingOrder = true,
-                          $projectedFields = []
-    )
+                          string|bool $indexName = DynamoDbIndex::PRIMARY_INDEX,
+                          string $filterExpression = '',
+                          mixed &$lastKey = null,
+                          int $evaluationLimit = 30,
+                          bool $isConsistentRead = false,
+                          bool $isAscendingOrder = true,
+                          array $projectedFields = []
+    ): array
     {
         $wrapper = new QueryCommandWrapper();
         
@@ -379,7 +368,7 @@ class DynamoDbTable
         $wrapper(
             $this->dbClient,
             $this->tableName,
-            function ($item) use (&$ret) {
+            function (array $item) use (&$ret): void {
                 $ret[] = $item;
             },
             $keyConditions,
@@ -399,14 +388,14 @@ class DynamoDbTable
     }
     
     public function queryAndRun(callable $callback,
-                                $keyConditions,
+                                string $keyConditions,
                                 array $fieldsMapping,
                                 array $paramsMapping,
-                                $indexName = DynamoDbIndex::PRIMARY_INDEX,
-                                $filterExpression = '',
-                                $isConsistentRead = false,
-                                $isAscendingOrder = true,
-                                $projectedFields = [])
+                                string|bool $indexName = DynamoDbIndex::PRIMARY_INDEX,
+                                string $filterExpression = '',
+                                bool $isConsistentRead = false,
+                                bool $isAscendingOrder = true,
+                                array $projectedFields = []): void
     {
         $lastKey           = null;
         $stoppedByCallback = false;
@@ -416,7 +405,7 @@ class DynamoDbTable
             $wrapper(
                 $this->dbClient,
                 $this->tableName,
-                function ($item) use (&$stoppedByCallback, $callback) {
+                function (array $item) use (&$stoppedByCallback, $callback): void {
                     if ($stoppedByCallback) {
                         return;
                     }
@@ -441,14 +430,14 @@ class DynamoDbTable
         } while ($lastKey != null && !$stoppedByCallback);
     }
     
-    public function queryCount($keyConditions,
+    public function queryCount(string $keyConditions,
                                array $fieldsMapping,
                                array $paramsMapping,
-                               $indexName = DynamoDbIndex::PRIMARY_INDEX,
-                               $filterExpression = '',
-                               $isConsistentRead = false,
-                               $isAscendingOrder = true
-    )
+                               string|bool $indexName = DynamoDbIndex::PRIMARY_INDEX,
+                               string $filterExpression = '',
+                               bool $isConsistentRead = false,
+                               bool $isAscendingOrder = true
+    ): int
     {
         $ret     = 0;
         $lastKey = null;
@@ -457,7 +446,7 @@ class DynamoDbTable
             $ret += $wrapper(
                 $this->dbClient,
                 $this->tableName,
-                function () {
+                function (): void {
                 },
                 $keyConditions,
                 $fieldsMapping,
@@ -465,7 +454,7 @@ class DynamoDbTable
                 $indexName,
                 $filterExpression,
                 $lastKey,
-                10000, // max size of a query is 1MB of data, a limit of 10k for items with a typical size of 100B
+                10000,
                 $isConsistentRead,
                 $isAscendingOrder,
                 true,
@@ -476,16 +465,16 @@ class DynamoDbTable
         return $ret;
     }
     
-    public function scan($filterExpression = '',
+    public function scan(string $filterExpression = '',
                          array $fieldsMapping = [],
                          array $paramsMapping = [],
-                         $indexName = DynamoDbIndex::PRIMARY_INDEX,
-                         &$lastKey = null,
-                         $evaluationLimit = 30,
-                         $isConsistentRead = false,
-                         $isAscendingOrder = true,
-                         $projectedFields = []
-    )
+                         string|bool $indexName = DynamoDbIndex::PRIMARY_INDEX,
+                         mixed &$lastKey = null,
+                         int $evaluationLimit = 30,
+                         bool $isConsistentRead = false,
+                         bool $isAscendingOrder = true,
+                         array $projectedFields = []
+    ): array
     {
         $wrapper = new ScanCommandWrapper();
         
@@ -493,7 +482,7 @@ class DynamoDbTable
         $wrapper(
             $this->dbClient,
             $this->tableName,
-            function ($item) use (&$ret) {
+            function (array $item) use (&$ret): void {
                 $ret[] = $item;
             },
             $filterExpression,
@@ -512,13 +501,13 @@ class DynamoDbTable
     }
     
     public function scanAndRun(callable $callback,
-                               $filterExpression = '',
+                               string $filterExpression = '',
                                array $fieldsMapping = [],
                                array $paramsMapping = [],
-                               $indexName = DynamoDbIndex::PRIMARY_INDEX,
-                               $isConsistentRead = false,
-                               $isAscendingOrder = true,
-                               $projectedFields = [])
+                               string|bool $indexName = DynamoDbIndex::PRIMARY_INDEX,
+                               bool $isConsistentRead = false,
+                               bool $isAscendingOrder = true,
+                               array $projectedFields = []): void
     {
         $lastKey           = null;
         $stoppedByCallback = false;
@@ -528,7 +517,7 @@ class DynamoDbTable
             $wrapper(
                 $this->dbClient,
                 $this->tableName,
-                function ($item) use (&$stoppedByCallback, $callback) {
+                function (array $item) use (&$stoppedByCallback, $callback): void {
                     if ($stoppedByCallback) {
                         return;
                     }
@@ -552,13 +541,13 @@ class DynamoDbTable
         } while ($lastKey != null && !$stoppedByCallback);
     }
     
-    public function scanCount($filterExpression = '',
+    public function scanCount(string $filterExpression = '',
                               array $fieldsMapping = [],
                               array $paramsMapping = [],
-                              $indexName = DynamoDbIndex::PRIMARY_INDEX,
-                              $isConsistentRead = false,
-                              $parallel = 10
-    )
+                              string|bool $indexName = DynamoDbIndex::PRIMARY_INDEX,
+                              bool $isConsistentRead = false,
+                              int $parallel = 10
+    ): int
     {
         $lastKey = null;
         $wrapper = new ParallelScanCommandWrapper();
@@ -566,13 +555,13 @@ class DynamoDbTable
         return $wrapper(
             $this->dbClient,
             $this->tableName,
-            function () {
+            function (): void {
             },
             $filterExpression,
             $fieldsMapping,
             $paramsMapping,
             $indexName,
-            10000, // max size of a query is 1MB of data, a limit of 10k for items with a typical size of 100B
+            10000,
             $isConsistentRead,
             true,
             $parallel,
@@ -581,7 +570,7 @@ class DynamoDbTable
         );
     }
     
-    public function set(array $obj, $checkValues = [])
+    public function set(array $obj, array $checkValues = []): bool
     {
         $requestArgs = [
             "TableName" => $this->tableName,
@@ -633,11 +622,11 @@ class DynamoDbTable
         
         return true;
     }
-    
-    public function getConsumedCapacity($indexName = DynamoDbIndex::PRIMARY_INDEX,
-                                        $period = 60,
-                                        $num_of_period = 5,
-                                        $timeshift = -300)
+
+    public function getConsumedCapacity(string|bool $indexName = DynamoDbIndex::PRIMARY_INDEX,
+                                        int $period = 60,
+                                        int $num_of_period = 5,
+                                        int $timeshift = -300): array
     {
         $cloudwatch = new CloudWatchClient(
             [
@@ -658,10 +647,6 @@ class DynamoDbTable
                     "Name"  => "TableName",
                     "Value" => $this->tableName,
                 ],
-                //[
-                //    "Name"  => "Operation",
-                //    "Value" => "GetItem",
-                //],
             ],
             "MetricName" => "ConsumedReadCapacityUnits",
             "StartTime"  => date('c', $start),
@@ -701,15 +686,12 @@ class DynamoDbTable
         ];
     }
     
-    /**
-     * @return DynamoDbClient
-     */
-    public function getDbClient()
+    public function getDbClient(): DynamoDbClient
     {
         return $this->dbClient;
     }
     
-    public function getGlobalSecondaryIndices($namePattern = "/.*/")
+    public function getGlobalSecondaryIndices(string $namePattern = "/.*/"):  array
     {
         $description = $this->describe();
         $gsiDefs     = isset($description['GlobalSecondaryIndexes']) ? $description['GlobalSecondaryIndexes'] : null;
@@ -761,7 +743,7 @@ class DynamoDbTable
         return $gsis;
     }
     
-    public function getLocalSecondaryIndices()
+    public function getLocalSecondaryIndices(): array
     {
         $description = $this->describe();
         $lsiDefs     = isset($description['LocalSecondaryIndexes']) ? $description['LocalSecondaryIndexes'] : null;
@@ -809,7 +791,7 @@ class DynamoDbTable
         return $lsis;
     }
     
-    public function getPrimaryIndex()
+    public function getPrimaryIndex(): DynamoDbIndex
     {
         $description = $this->describe();
         $attrDefs    = [];
@@ -844,15 +826,12 @@ class DynamoDbTable
         return $primaryIndex;
     }
     
-    /**
-     * @return mixed
-     */
-    public function getTableName()
+    public function getTableName(): string
     {
         return $this->tableName;
     }
     
-    public function getThroughput($indexName = DynamoDbIndex::PRIMARY_INDEX)
+    public function getThroughput(string|bool $indexName = DynamoDbIndex::PRIMARY_INDEX): array
     {
         $result = $this->describe();
         if ($indexName == DynamoDbIndex::PRIMARY_INDEX) {
@@ -877,14 +856,14 @@ class DynamoDbTable
         throw new \UnexpectedValueException("Cannot find index named $indexName");
     }
     
-    public function setAttributeType($name, $type)
+    public function setAttributeType(string $name, string $type): static
     {
         $this->attributeTypes[$name] = $type;
         
         return $this;
     }
     
-    public function setThroughput($read, $write, $indexName = DynamoDbIndex::PRIMARY_INDEX)
+    public function setThroughput(int $read, int $write, string|bool $indexName = DynamoDbIndex::PRIMARY_INDEX): void
     {
         $requestArgs  = [
             "TableName" => $this->tableName,
@@ -922,25 +901,24 @@ class DynamoDbTable
         }
     }
     
-    protected function doBatchWrite($isPut,
+    protected function doBatchWrite(bool $isPut,
                                     array $objs,
-                                    $concurrency = 10,
-                                    $objIsTyped = false,
-                                    $retryDelay = 0,
-                                    $maxDelay = 15000)
+                                    int $concurrency = 10,
+                                    bool $objIsTyped = false,
+                                    int $retryDelay = 0,
+                                    int $maxDelay = 15000): void
     {
         $promises    = [];
         $writes      = [];
         $unprocessed = [];
         
-        $flushCallback = function ($limit = 25) use (&$promises, &$writes, &$unprocessed) {
+        $flushCallback = function (int $limit = 25) use (&$promises, &$writes, &$unprocessed): void {
             if (count($writes) >= $limit) {
                 $reqArgs = [
                     "RequestItems" => [
                         $this->tableName => $writes,
                     ],
                 ];
-                //$reqArgs['ReturnConsumedCapacity'] = "TOTAL";
                 $promise    = $this->dbClient->batchWriteItemAsync($reqArgs);
                 $promises[] = $promise;
                 $writes     = [];
@@ -971,7 +949,7 @@ class DynamoDbTable
         \GuzzleHttp\Promise\Each::ofLimit(
             $promises,
             $concurrency,
-            function (Result $result) use ($isPut, &$unprocessed) {
+            function (Result $result) use ($isPut, &$unprocessed): void {
                 $unprocessedItems = $result['UnprocessedItems'];
                 if (isset($unprocessedItems[$this->tableName])) {
                     $currentUnprocessed = $unprocessedItems[$this->tableName];
@@ -986,7 +964,7 @@ class DynamoDbTable
                     }
                 }
             },
-            function ($e) {
+            function ($e): void {
                 merror("Exception got: %s!", get_class($e));
                 if ($e instanceof DynamoDbException) {
                     mtrace(
@@ -1009,7 +987,7 @@ class DynamoDbTable
             }
             mdebug("sleeping $retryDelay ms");
             usleep($retryDelay * 1000);
-            $this->doBatchWrite($isPut, $unprocessed, $concurrency, true, $nextRetry);
+            $this->doBatchWrite($isPut, $unprocessed, $concurrency, true, (int)$nextRetry);
         }
     }
 }

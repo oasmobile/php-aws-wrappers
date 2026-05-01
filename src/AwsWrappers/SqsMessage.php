@@ -1,49 +1,33 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: minhao
- * Date: 2015-10-10
- * Time: 16:51
- */
 
 namespace Oasis\Mlib\AwsWrappers;
-
 
 use Oasis\Mlib\Utils\ArrayDataProvider;
 use Oasis\Mlib\Utils\DataType;
 
 class SqsMessage
 {
-    protected $messageId;
-    protected $md5OfBody;
-    protected $md5OfAttributes;
+    protected string $messageId;
+    protected ?string $md5OfBody = null;
+    protected ?string $md5OfAttributes = null;
 
-    function __construct(array $arr_message)
+    public function __construct(array $arr_message)
     {
         $dp              = new ArrayDataProvider($arr_message);
         $this->messageId = $dp->getMandatory('MessageId', DataType::String);
     }
 
-    /**
-     * @return mixed
-     */
-    public function getMd5OfAttributes()
+    public function getMd5OfAttributes(): ?string
     {
         return $this->md5OfAttributes;
     }
 
-    /**
-     * @return mixed
-     */
-    public function getMd5OfBody()
+    public function getMd5OfBody(): ?string
     {
         return $this->md5OfBody;
     }
 
-    /**
-     * @return mixed
-     */
-    public function getMessageId()
+    public function getMessageId(): string
     {
         return $this->messageId;
     }

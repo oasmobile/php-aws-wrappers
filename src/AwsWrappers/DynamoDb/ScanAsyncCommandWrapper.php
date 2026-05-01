@@ -1,52 +1,29 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: minhao
- * Date: 2017-01-06
- * Time: 11:40
- */
 
 namespace Oasis\Mlib\AwsWrappers\DynamoDb;
 
 use Aws\DynamoDb\DynamoDbClient;
+use GuzzleHttp\Promise\PromiseInterface;
 use Oasis\Mlib\AwsWrappers\DynamoDbIndex;
 use Oasis\Mlib\AwsWrappers\DynamoDbItem;
 
 class ScanAsyncCommandWrapper
 {
-    /**
-     * @param DynamoDbClient $dbClient
-     * @param                $tableName
-     * @param                $filterExpression
-     * @param array          $fieldsMapping
-     * @param array          $paramsMapping
-     * @param                $indexName
-     * @param                $lastKey
-     * @param                $evaluationLimit
-     * @param                $isConsistentRead
-     * @param                $isAscendingOrder
-     * @param                $segment
-     * @param                $totalSegments
-     * @param                $countOnly
-     * @param array          $projectedFields
-     *
-     * @return \GuzzleHttp\Promise\Promise
-     */
-    function __invoke(DynamoDbClient $dbClient,
-                      $tableName,
-                      $filterExpression,
-                      array $fieldsMapping,
-                      array $paramsMapping,
-                      $indexName,
-                      &$lastKey,
-                      $evaluationLimit,
-                      $isConsistentRead,
-                      $isAscendingOrder,
-                      $segment,
-                      $totalSegments,
-                      $countOnly,
-                      $projectedFields
-    )
+    public function __invoke(DynamoDbClient $dbClient,
+                             string $tableName,
+                             ?string $filterExpression,
+                             array $fieldsMapping,
+                             array $paramsMapping,
+                             string|bool $indexName,
+                             mixed &$lastKey,
+                             ?int $evaluationLimit,
+                             bool $isConsistentRead,
+                             bool $isAscendingOrder,
+                             int $segment,
+                             int $totalSegments,
+                             bool $countOnly,
+                             array $projectedFields
+    ): PromiseInterface
     {
         $requestArgs = [
             "TableName"        => $tableName,

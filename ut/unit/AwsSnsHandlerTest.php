@@ -22,7 +22,7 @@ class StubSnsPublisher extends SnsPublisher
         // Skip parent constructor — no AWS SDK initialization
     }
 
-    public function publish($subject, $body, $channels = [])
+    public function publish(mixed $subject, mixed $body, array|string $channels = []): void
     {
         $this->publishCalls[] = [
             'subject'  => $subject,

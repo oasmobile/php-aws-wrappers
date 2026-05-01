@@ -1,10 +1,4 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: minhao
- * Date: 2017-01-06
- * Time: 11:40
- */
 
 namespace Oasis\Mlib\AwsWrappers\DynamoDb;
 
@@ -13,38 +7,20 @@ use Oasis\Mlib\AwsWrappers\DynamoDbItem;
 
 class QueryCommandWrapper
 {
-    /**
-     * @param DynamoDbClient $dbClient
-     * @param                $tableName
-     * @param callable       $callback
-     * @param                $keyConditions
-     * @param array          $fieldsMapping
-     * @param array          $paramsMapping
-     * @param                $indexName
-     * @param                $filterExpression
-     * @param                $lastKey
-     * @param                $evaluationLimit
-     * @param                $isConsistentRead
-     * @param                $isAscendingOrder
-     * @param                $countOnly
-     * @param array          $projectedFields
-     *
-     * @return array|bool
-     */
-    function __invoke(DynamoDbClient $dbClient,
-                      $tableName,
-                      callable $callback,
-                      $keyConditions,
-                      array $fieldsMapping,
-                      array $paramsMapping,
-                      $indexName,
-                      $filterExpression,
-                      &$lastKey,
-                      $evaluationLimit,
-                      $isConsistentRead,
-                      $isAscendingOrder,
-                      $countOnly,
-                      $projectedFields)
+    public function __invoke(DynamoDbClient $dbClient,
+                             string $tableName,
+                             callable $callback,
+                             ?string $keyConditions,
+                             array $fieldsMapping,
+                             array $paramsMapping,
+                             string|bool $indexName,
+                             ?string $filterExpression,
+                             mixed &$lastKey,
+                             ?int $evaluationLimit,
+                             bool $isConsistentRead,
+                             bool $isAscendingOrder,
+                             bool $countOnly,
+                             array $projectedFields): int
     {
         $asyncWrapper = new QueryAsyncCommandWrapper();
         

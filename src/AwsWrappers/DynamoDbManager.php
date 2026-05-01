@@ -1,10 +1,4 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: minhao
- * Date: 2016-08-25
- * Time: 20:17
- */
 
 namespace Oasis\Mlib\AwsWrappers;
 
@@ -13,10 +7,9 @@ use Aws\Result;
 
 class DynamoDbManager
 {
-    /** @var array */
-    protected $config;
-    /** @var  DynamoDbClient */
-    protected $db;
+    protected array $config;
+    /** @var DynamoDbClient */
+    protected mixed $db;
     
     public function __construct(array $awsConfig)
     {
@@ -24,12 +17,7 @@ class DynamoDbManager
         $this->db = new DynamoDbClient($dp->getConfig());
     }
     
-    /**
-     * @param string $pattern a pattern that table name should match, if emtpy, all tables will be returned
-     *
-     * @return array
-     */
-    public function listTables($pattern = '/.*/')
+    public function listTables(string $pattern = '/.*/'): array
     {
         $tables                 = [];
         $lastEvaluatedTableName = null;
@@ -62,24 +50,13 @@ class DynamoDbManager
         return $tables;
     }
     
-    /**
-     * @param                 $tableName
-     * @param DynamoDbIndex   $primaryIndex
-     * @param DynamoDbIndex[] $localSecondaryIndices
-     * @param DynamoDbIndex[] $globalSecondaryIndices
-     * @param int             $readCapacity
-     * @param int             $writeCapacity
-     *
-     * @return bool
-     * @internal param DynamoDbIndex $primaryKey
-     */
-    public function createTable($tableName,
+    public function createTable(string $tableName,
                                 DynamoDbIndex $primaryIndex,
                                 array $localSecondaryIndices = [],
                                 array $globalSecondaryIndices = [],
-                                $readCapacity = 5,
-                                $writeCapacity = 5
-    )
+                                int $readCapacity = 5,
+                                int $writeCapacity = 5
+    ): bool
     {
         $attrDef = $primaryIndex->getAttributeDefinitions();
         foreach ($globalSecondaryIndices as $gsi) {
@@ -143,7 +120,7 @@ class DynamoDbManager
         }
     }
     
-    public function deleteTable($tableName)
+    public function deleteTable(string $tableName): bool
     {
         $args   = [
             'TableName' => $tableName,
@@ -158,7 +135,7 @@ class DynamoDbManager
         }
     }
     
-    public function waitForTableCreation($tableName, $timeout = 60, $pollInterval = 1, $blocking = true)
+    public function waitForTableCreation(string $tableName, int $timeout = 60, int $pollInterval = 1, bool $blocking = true): mixed
     {
         $args = [
             'TableName' => $tableName,
@@ -180,7 +157,7 @@ class DynamoDbManager
         }
     }
     
-    public function waitForTableDeletion($tableName, $timeout = 60, $pollInterval = 1, $blocking = true)
+    public function waitForTableDeletion(string $tableName, int $timeout = 60, int $pollInterval = 1, bool $blocking = true): mixed
     {
         $args = [
             'TableName' => $tableName,
@@ -202,7 +179,7 @@ class DynamoDbManager
         }
     }
     
-    public function waitForTablesToBeFullyReady($tableNames, $timeout = 60, $interval = 2)
+    public function waitForTablesToBeFullyReady(string|array $tableNames, int $timeout = 60, int $interval = 2): bool
     {
         $started = time();
         if (is_string($tableNames)) {
@@ -223,8 +200,6 @@ class DynamoDbManager
                             ) {
                                 foreach ($result['Table']['GlobalSecondaryIndexes'] as $gsi) {
                                     if ($gsi['IndexStatus'] != "ACTIVE") {
-                                        //mdebug("gsi %s not ready, status = %s", $gsi['IndexName'], $gsi['IndexStatus']);
-                                        
                                         return;
                                     }
                                 }
@@ -232,10 +207,6 @@ class DynamoDbManager
                             
                             $k = array_search($tableName, $tableNames);
                             array_splice($tableNames, $k, 1);
-                            //var_dump($tableNames);
-                        }
-                        else {
-                            //mdebug("Table %s not ready, status = %s", $tableName, $result['Table']['TableStatus']);
                         }
                     }
                 );

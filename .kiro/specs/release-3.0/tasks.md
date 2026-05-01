@@ -135,12 +135,12 @@
     - _Requirements: 4.2, 4.3, 4.4_
   - [x] 4.9 Checkpoint: 使用 PHP 8.5 运行 `php vendor/bin/phpunit --testsuite unit` 确认全部单元测试通过（Req 2 AC4, Req 4 AC3）；如有 AWS 凭证可运行 `php vendor/bin/phpunit --testsuite integration` 验证（Req 3 AC5, Req 4 AC4），commit
 
-- [ ] 5. Phase 3: 源代码风格现代化
-  - [ ] 5.1 编写风格现代化的回归测试基线
+- [-] 5. Phase 3: 源代码风格现代化
+  - [x] 5.1 编写风格现代化的回归测试基线
     - 在现有单元测试中确认所有测试通过，作为行为等价的基线
     - 记录当前测试数量和通过状态
     - _Requirements: 6.9_
-  - [ ] 5.2 对 `src/` 下全部 24 个 PHP 文件进行现代化改造
+  - [x] 5.2 对 `src/` 下全部 24 个 PHP 文件进行现代化改造
     - 参数类型声明：公共 API 参数类型不确定时可用 `mixed`，内部方法使用精确类型（CR Q2→C）
     - 返回类型声明：所有方法添加返回类型
     - 属性类型声明：所有属性添加类型
@@ -150,9 +150,9 @@
     - 联合类型：如 `int|float`、`string|null`
     - 保持公共 API 签名不变（方法名、参数顺序、行为契约）
     - _Requirements: 6.1, 6.2, 6.3, 6.4, 6.5, 6.6, 6.7, 6.8_
-  - [ ] 5.3 Checkpoint: 运行 `php vendor/bin/phpunit --testsuite unit` 确认全部单元测试通过（行为等价验证），commit
+  - [-] 5.3 Checkpoint: 运行 `php vendor/bin/phpunit --testsuite unit` 确认全部单元测试通过（行为等价验证），commit
 
-- [ ] 6. Phase 4: PBT 引入 + 覆盖率考核机制
+- [~] 6. Phase 4: PBT 引入 + 覆盖率考核机制
   - [ ] 6.1 添加 Eris PBT 库依赖
     - `composer require --dev giorgiosironi/eris`
     - 确认安装成功
@@ -190,7 +190,7 @@
     - _Requirements: 8.1, 8.2, 8.3, 8.4, 8.5_
   - [ ] 6.6 Checkpoint: 运行 PBT 测试和覆盖率检查确认全部通过，commit
 
-- [ ] 7. Phase 5: 文档同步更新
+- [~] 7. Phase 5: 文档同步更新
   - [ ] 7.1 更新 `docs/state/architecture.md`
     - 测试 section：PHPUnit ^5.7 → 13，测试目录 `ut/` → `ut/unit/` + `ut/integration/`，新增 PBT 和覆盖率机制描述
     - 依赖 section：`doctrine/common ^2.7` → `symfony/cache ^7.x`，`phpunit/phpunit ^5.7` → `^13`，`league/uri` 版本更新，新增 `giorgiosironi/eris`

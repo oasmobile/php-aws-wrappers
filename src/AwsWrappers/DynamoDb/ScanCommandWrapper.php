@@ -1,10 +1,4 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: minhao
- * Date: 2017-01-06
- * Time: 11:40
- */
 
 namespace Oasis\Mlib\AwsWrappers\DynamoDb;
 
@@ -14,37 +8,20 @@ use Oasis\Mlib\AwsWrappers\DynamoDbItem;
 
 class ScanCommandWrapper
 {
-    /**
-     * @param DynamoDbClient $dbClient
-     * @param                $tableName
-     * @param callable       $callback
-     * @param                $filterExpression
-     * @param array          $fieldsMapping
-     * @param array          $paramsMapping
-     * @param                $indexName
-     * @param                $lastKey
-     * @param                $evaluationLimit
-     * @param                $isConsistentRead
-     * @param                $isAscendingOrder
-     * @param                $countOnly
-     * @param array          $projectedAttributes
-     *
-     * @return int
-     */
-    function __invoke(DynamoDbClient $dbClient,
-                      $tableName,
-                      callable $callback,
-                      $filterExpression,
-                      array $fieldsMapping,
-                      array $paramsMapping,
-                      $indexName,
-                      &$lastKey,
-                      $evaluationLimit,
-                      $isConsistentRead,
-                      $isAscendingOrder,
-                      $countOnly,
-                      $projectedAttributes
-    )
+    public function __invoke(DynamoDbClient $dbClient,
+                             string $tableName,
+                             callable $callback,
+                             ?string $filterExpression,
+                             array $fieldsMapping,
+                             array $paramsMapping,
+                             string|bool $indexName,
+                             mixed &$lastKey,
+                             ?int $evaluationLimit,
+                             bool $isConsistentRead,
+                             bool $isAscendingOrder,
+                             bool $countOnly,
+                             array $projectedAttributes
+    ): int
     {
         $asyncCommandWrapper = new ScanAsyncCommandWrapper();
         $promise             = $asyncCommandWrapper(
@@ -64,7 +41,7 @@ class ScanCommandWrapper
             $projectedAttributes
         );
         $promise->then(
-            function (Result $result) use (&$lastKey, &$ret, $callback, $countOnly) {
+            function (Result $result) use (&$lastKey, &$ret, $callback, $countOnly): void {
                 $lastKey = isset($result['LastEvaluatedKey']) ? $result['LastEvaluatedKey'] : null;
                 if ($countOnly) {
                     $ret = $result['Count'];
