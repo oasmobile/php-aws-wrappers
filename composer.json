@@ -7,7 +7,7 @@
         "aws/aws-sdk-php" : "^3.22",
         "oasis/logging"   : "^3.0",
         "oasis/event"     : "^3.0",
-        "symfony/cache"   : "^7.0",
+        "symfony/cache"   : "^8.0",
         "psr/simple-cache": "^3.0"
     },
     "require-dev" : {
